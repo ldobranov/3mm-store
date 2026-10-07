@@ -46,7 +46,9 @@ def wheel_name(version: str) -> str:
 
 def _write(archive: zipfile.ZipFile, name: str, payload: bytes) -> None:
     info = zipfile.ZipInfo(name, FIXED_TIME)
-    info.compress_type = zipfile.ZIP_DEFLATED
+    # Stored entries avoid zlib-version/platform differences in compressed bytes.
+    # Package size is small; cross-platform byte identity is more valuable here.
+    info.compress_type = zipfile.ZIP_STORED
     info.external_attr = 0o100644 << 16
     archive.writestr(info, payload)
 

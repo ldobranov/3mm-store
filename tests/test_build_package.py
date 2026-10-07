@@ -134,6 +134,30 @@ class PackageBuildTests(unittest.TestCase):
             application["storage"]["contains_personal_data"]
         )
 
+    def test_archives_use_stored_entries_for_cross_platform_identity(self) -> None:
+        payload = build_package()
+        with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+            self.assertTrue(
+                all(
+                    item.compress_type == zipfile.ZIP_STORED
+                    for item in archive.infolist()
+                )
+            )
+
+        with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+            application = json.loads(
+                archive.read("application-extension.json")
+            )
+            wheel = archive.read(application["service"]["artifact"])
+
+        with zipfile.ZipFile(io.BytesIO(wheel)) as archive:
+            self.assertTrue(
+                all(
+                    item.compress_type == zipfile.ZIP_STORED
+                    for item in archive.infolist()
+                )
+            )
+
     def test_installable_zip_contains_only_expected_runtime_files(self) -> None:
         payload = build_package()
         with zipfile.ZipFile(io.BytesIO(payload)) as archive:
