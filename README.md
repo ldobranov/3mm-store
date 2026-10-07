@@ -32,6 +32,7 @@ The authoritative Store architecture and delivery plan is:
 - [S0.1 Catalog Contract](docs/S0_CATALOG_CONTRACT.md)
 - [S0.2 Installable Package Foundation](docs/S0_PACKAGE_FOUNDATION.md)
 - [S0 Physical Acceptance](docs/S0_PHYSICAL_ACCEPTANCE.md)
+- [S1.1 Category Management](docs/S1_1_CATEGORIES.md)
 
 3mm Store targets:
 

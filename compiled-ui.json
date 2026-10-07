@@ -1,28 +1,43 @@
 {
   "compiled_ui_version": 1,
   "module_id": "org.3mm.store",
-  "version": "0.1.0-dev.0",
+  "version": "0.1.0-dev.1",
   "entrypoints": [
     {
       "entrypoint_id": "catalog",
       "kind": "route",
       "source": "source/frontend/Catalog.vue",
-      "label": {"en": "Store catalog", "translations": {"bg": "Каталог"}},
+      "label": {
+        "en": "Store catalog",
+        "translations": {
+          "bg": "Каталог"
+        }
+      },
       "route": "/store/catalog"
     },
     {
       "entrypoint_id": "inventory",
       "kind": "route",
       "source": "source/frontend/Inventory.vue",
-      "label": {"en": "Store inventory", "translations": {"bg": "Наличности"}},
+      "label": {
+        "en": "Store inventory",
+        "translations": {
+          "bg": "Наличности"
+        }
+      },
       "route": "/store/inventory"
     },
     {
       "entrypoint_id": "settings",
       "kind": "route",
       "source": "source/frontend/Settings.vue",
-      "label": {"en": "Store settings", "translations": {"bg": "Настройки на магазина"}},
+      "label": {
+        "en": "Store settings",
+        "translations": {
+          "bg": "Настройки на магазина"
+        }
+      },
       "route": "/store/settings"
     }
   ]
-}
+}\n

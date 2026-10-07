@@ -13,3 +13,5 @@ All notable changes to 3mm Store will be documented here.
 - Confirmed product-media ingestion as a generic platform-gap candidate instead of introducing a Store-specific Core upload path.
 - S0.2 deterministic installable package foundation with health service, migration `0001`, compiled UI route placeholders, build tests and local 3mm-validator helper.
 - S0 physical Raspberry acceptance for package `0.1.0-dev.0`.
+- S1.1 category management operations, replay-safe Store idempotency, category hierarchy/slug-history rules and functional Catalog UI.
+- CI validation of the built Store ZIP against the current 3mm package contract.

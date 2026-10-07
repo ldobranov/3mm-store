@@ -40,7 +40,7 @@ class PackageBuildTests(unittest.TestCase):
                 application["service"]["artifact_sha256"],
             )
 
-    def test_s02_contract_is_intentionally_minimal(self) -> None:
+    def test_s11_category_contract_is_declared(self) -> None:
         payload = build_package()
         with zipfile.ZipFile(io.BytesIO(payload)) as archive:
             manifest = json.loads(archive.read("manifest.json"))
@@ -55,8 +55,21 @@ class PackageBuildTests(unittest.TestCase):
         )
         self.assertEqual(
             [item["operation_id"] for item in application["operations"]],
-            ["health"],
+            [
+                "health",
+                "catalog_list_categories",
+                "category_create",
+                "category_update",
+                "category_set_status",
+            ],
         )
+        for operation in application["operations"][1:]:
+            self.assertIn("operator", operation["audiences"])
+            self.assertIn("administrator", operation["audiences"])
+            self.assertEqual(
+                operation["required_permission"],
+                "catalog_manage",
+            )
         self.assertEqual(
             [item["entrypoint_id"] for item in compiled_ui["entrypoints"]],
             ["catalog", "inventory", "settings"],
