@@ -523,4 +523,4 @@
     "uninstall_requires_data_confirmation": true,
     "rollback": "transactional"
   }
-}\n
+}
