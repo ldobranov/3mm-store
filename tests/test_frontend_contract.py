@@ -95,6 +95,29 @@ class FrontendHostContractTests(unittest.TestCase):
             catalog,
         )
 
+    def test_products_use_localized_catalog_contract(self) -> None:
+        catalog = (FRONTEND / "Catalog.vue").read_text(
+            encoding="utf-8"
+        )
+        products = (FRONTEND / "ProductsPanel.vue").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("ProductsPanel", catalog)
+        for operation in (
+            "catalog_list_products",
+            "catalog_get_product",
+            "product_create",
+            "product_update",
+            "product_set_status",
+        ):
+            self.assertIn(operation, products)
+        self.assertIn("readInstalledLanguages", products)
+        self.assertIn("localizedDrafts", products)
+        self.assertIn("snapshotLocalizedDraft", products)
+        self.assertIn("category_ids", products)
+        self.assertIn("price_minor", products)
+        self.assertIn("track_inventory", products)
+
     def test_store_ui_uses_platform_theme_tokens(self) -> None:
         catalog = (FRONTEND / "Catalog.vue").read_text(
             encoding="utf-8"

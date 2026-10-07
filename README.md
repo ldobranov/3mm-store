@@ -9,7 +9,7 @@ contracts and tests.
 
 ## Status
 
-**S1.1b — localization foundation**
+**S1.2 — products**
 
 Module identity:
 
@@ -20,7 +20,7 @@ org.3mm.store
 Current work happens on:
 
 ```text
-s1/categories
+s1/products
 ```
 
 ## Architecture
@@ -32,7 +32,9 @@ The authoritative Store architecture and delivery plan is:
 - [S0.1 Catalog Contract](docs/S0_CATALOG_CONTRACT.md)
 - [S0.2 Installable Package Foundation](docs/S0_PACKAGE_FOUNDATION.md)
 - [S0 Physical Acceptance](docs/S0_PHYSICAL_ACCEPTANCE.md)
-- [S1.1 Category Management](docs/S1_1_CATEGORIES.md)\n- [S1.1b Localization Foundation](docs/S1_1B_LOCALIZATION.md)
+- [S1.1 Category Management](docs/S1_1_CATEGORIES.md)
+- [S1.1b Localization Foundation](docs/S1_1B_LOCALIZATION.md)
+- [S1.2 Products](docs/S1_2_PRODUCTS.md)
 - [Releasing 3mm Store](docs/RELEASING.md)
 
 3mm Store targets:

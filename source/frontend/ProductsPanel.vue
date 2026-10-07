@@ -1,31 +1,26 @@
 <template>
-  <main class="store-page">
-    <header class="page-header">
+  <section class="products-shell">
+    <header class="section-header">
       <div>
-        <h1>{{ t('Каталог на магазина', 'Store catalog') }}</h1>
+        <h2>{{ t('Продукти', 'Products') }}</h2>
         <p>
           {{
             t(
-              'Категориите се редактират отделно за всеки инсталиран език.',
-              'Categories are edited separately for every installed language.',
+              'Продуктовите данни са общи, а съдържанието се пази отделно по език.',
+              'Product data is shared while content is stored separately per language.',
             )
           }}
         </p>
       </div>
       <button type="button" class="secondary" @click="startCreate">
-        {{ t('Нова категория', 'New category') }}
+        {{ t('Нов продукт', 'New product') }}
       </button>
     </header>
 
-    <ProductsPanel />
-
-    <section class="panel filters">
+    <div class="panel filters">
       <label>
         <span>{{ t('Език на съдържанието', 'Content language') }}</span>
-        <select
-          :value="contentLanguage"
-          @change="changeListLanguage"
-        >
+        <select :value="contentLanguage" @change="changeListLanguage">
           <option
             v-for="code in installedLanguages"
             :key="code"
@@ -41,7 +36,7 @@
         <input
           v-model.trim="search"
           maxlength="120"
-          :placeholder="t('Име или slug', 'Name or slug')"
+          :placeholder="t('Име, SKU или slug', 'Name, SKU or slug')"
           @keyup.enter="reloadFromStart"
         />
       </label>
@@ -50,15 +45,28 @@
         <span>{{ t('Състояние', 'Status') }}</span>
         <select v-model="statusFilter" @change="reloadFromStart">
           <option value="">{{ t('Всички', 'All') }}</option>
+          <option value="draft">{{ t('Чернова', 'Draft') }}</option>
           <option value="active">{{ t('Активни', 'Active') }}</option>
           <option value="archived">{{ t('Архивирани', 'Archived') }}</option>
+        </select>
+      </label>
+
+      <label>
+        <span>{{ t('Подреждане', 'Sort') }}</span>
+        <select v-model="sort" @change="reloadFromStart">
+          <option value="updated_desc">
+            {{ t('Последно променени', 'Recently updated') }}
+          </option>
+          <option value="name_asc">{{ t('Име A–Z', 'Name A–Z') }}</option>
+          <option value="name_desc">{{ t('Име Z–A', 'Name Z–A') }}</option>
+          <option value="sku_asc">SKU A–Z</option>
         </select>
       </label>
 
       <button type="button" @click="reloadFromStart" :disabled="busy">
         {{ t('Приложи', 'Apply') }}
       </button>
-    </section>
+    </div>
 
     <p v-if="error" class="message error" role="alert">{{ error }}</p>
     <p v-if="message" class="message success" role="status">{{ message }}</p>
@@ -66,18 +74,18 @@
     <section v-if="editing" class="panel editor">
       <div class="section-header">
         <div>
-          <h2>
+          <h3>
             {{
-              form.category_id
-                ? t('Редакция на категория', 'Edit category')
-                : t('Нова категория', 'New category')
+              form.product_id
+                ? t('Редакция на продукт', 'Edit product')
+                : t('Нов продукт', 'New product')
             }}
-          </h2>
-          <p class="section-help">
+          </h3>
+          <p>
             {{
               t(
-                'Slug, родител и ред са общи. Името, описанията и SEO текстовете са по език.',
-                'Slug, parent and order are shared. Names, descriptions and SEO text are language-specific.',
+                'SKU, slug, цена, категории и наличност са общи за всички езици.',
+                'SKU, slug, price, categories and inventory tracking are shared across languages.',
               )
             }}
           </p>
@@ -106,65 +114,61 @@
         </button>
       </div>
 
-      <p
-        v-if="
-          form.category_id &&
-          !hasStoredTranslation(contentLanguage) &&
-          contentLanguage === legacySeedLanguage
-        "
-        class="legacy-note"
-      >
-        {{
-          t(
-            'Този текст е от стария едноезичен запис. Записването ще го потвърди за избрания език.',
-            'This text comes from the legacy single-language record. Saving will assign it to the selected language.',
-          )
-        }}
-      </p>
-
       <div class="form-grid">
         <label>
-          <span>{{ t('Име', 'Name') }} · {{ contentLanguage.toUpperCase() }}</span>
-          <input v-model.trim="form.name" maxlength="160" />
+          <span>SKU</span>
+          <input v-model.trim="form.sku" maxlength="80" />
         </label>
 
         <label>
           <span>Slug</span>
-          <input
-            v-model.trim="form.slug"
-            maxlength="120"
-            placeholder="adult-diapers"
-          />
+          <input v-model.trim="form.slug" maxlength="120" />
         </label>
 
         <label>
-          <span>{{ t('Родителска категория', 'Parent') }}</span>
-          <select v-model="form.parent_id">
-            <option value="">
-              {{ t('Основна категория', 'Root category') }}
-            </option>
+          <span>{{ t('Цена · minor units', 'Price · minor units') }}</span>
+          <input
+            v-model.number="form.price_minor"
+            type="number"
+            min="0"
+            max="999999999999"
+          />
+        </label>
+
+        <label class="checkbox-label">
+          <input v-model="form.track_inventory" type="checkbox" />
+          <span>{{ t('Следи наличност', 'Track inventory') }}</span>
+        </label>
+
+        <label class="wide">
+          <span>{{ t('Категории', 'Categories') }}</span>
+          <select v-model="form.category_ids" multiple size="5">
             <option
-              v-for="category in parentOptions"
+              v-for="category in categoryOptions"
               :key="category.category_id"
               :value="category.category_id"
             >
-              {{ category.name }}
-              {{
-                category.status === 'archived'
-                  ? t('(архивирана)', '(archived)')
-                  : ''
-              }}
+              {{ category.name }} · {{ category.slug }}
             </option>
           </select>
         </label>
 
         <label>
-          <span>{{ t('Ред', 'Sort order') }}</span>
-          <input
-            v-model.number="form.sort_order"
-            type="number"
-            min="0"
-            max="100000"
+          <span>
+            {{ t('Име', 'Name') }} · {{ contentLanguage.toUpperCase() }}
+          </span>
+          <input v-model.trim="form.name" maxlength="200" />
+        </label>
+
+        <label>
+          <span>
+            {{ t('Кратко описание', 'Short description') }}
+            · {{ contentLanguage.toUpperCase() }}
+          </span>
+          <textarea
+            v-model.trim="form.short_description"
+            rows="3"
+            maxlength="500"
           />
         </label>
 
@@ -175,8 +179,8 @@
           </span>
           <textarea
             v-model.trim="form.description"
-            rows="5"
-            maxlength="5000"
+            rows="7"
+            maxlength="10000"
           />
         </label>
 
@@ -202,11 +206,11 @@
       </div>
 
       <div class="actions">
-        <button type="button" @click="saveCategory" :disabled="saving">
+        <button type="button" @click="saveProduct" :disabled="saving">
           {{
             saving
               ? t('Записване…', 'Saving…')
-              : t('Запази езика и категорията', 'Save language and category')
+              : t('Запази езика и продукта', 'Save language and product')
           }}
         </button>
         <button type="button" class="secondary" @click="cancelEdit">
@@ -217,10 +221,9 @@
 
     <section class="panel">
       <div class="section-header">
-        <h2>{{ t('Категории', 'Categories') }}</h2>
+        <h3>{{ t('Продукти', 'Products') }}</h3>
         <span>
-          {{ total }}
-          {{ t('общо', 'total') }}
+          {{ total }} {{ t('общо', 'total') }}
           · {{ contentLanguage.toUpperCase() }}
         </span>
       </div>
@@ -230,50 +233,50 @@
           <thead>
             <tr>
               <th>{{ t('Име', 'Name') }}</th>
+              <th>SKU</th>
               <th>Slug</th>
-              <th>{{ t('Родител', 'Parent') }}</th>
+              <th>{{ t('Цена', 'Price') }}</th>
               <th>{{ t('Състояние', 'Status') }}</th>
-              <th>{{ t('Ред', 'Order') }}</th>
               <th class="actions-column">{{ t('Действия', 'Actions') }}</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-if="!busy && categories.length === 0">
+            <tr v-if="!busy && products.length === 0">
               <td colspan="6" class="empty">
-                {{ t('Няма намерени категории.', 'No categories found.') }}
+                {{ t('Няма намерени продукти.', 'No products found.') }}
               </td>
             </tr>
-            <tr v-for="category in categories" :key="category.category_id">
-              <td>{{ category.name }}</td>
-              <td><code>{{ category.slug }}</code></td>
-              <td>{{ parentName(category.parent_id) }}</td>
+            <tr v-for="product in products" :key="product.product_id">
+              <td>{{ product.name }}</td>
+              <td><code>{{ product.sku }}</code></td>
+              <td><code>{{ product.slug }}</code></td>
+              <td>{{ product.price_minor }}</td>
               <td>
-                <span class="status" :class="category.status">
-                  {{ statusLabel(category.status) }}
+                <span class="status" :class="product.status">
+                  {{ statusLabel(product.status) }}
                 </span>
               </td>
-              <td>{{ category.sort_order }}</td>
               <td>
                 <div class="row-actions">
                   <button
                     type="button"
                     class="secondary"
-                    @click="startEdit(category)"
+                    @click="startEdit(product)"
                   >
                     {{ t('Редакция', 'Edit') }}
                   </button>
-                  <button
-                    type="button"
-                    class="secondary"
+                  <select
+                    class="status-select"
+                    :value="product.status"
                     :disabled="saving"
-                    @click="toggleStatus(category)"
+                    @change="changeStatus(product, $event)"
                   >
-                    {{
-                      category.status === 'active'
-                        ? t('Архивирай', 'Archive')
-                        : t('Активирай', 'Activate')
-                    }}
-                  </button>
+                    <option value="draft">{{ t('Чернова', 'Draft') }}</option>
+                    <option value="active">{{ t('Активен', 'Active') }}</option>
+                    <option value="archived">
+                      {{ t('Архивиран', 'Archived') }}
+                    </option>
+                  </select>
                 </div>
               </td>
             </tr>
@@ -305,7 +308,7 @@
         </button>
       </footer>
     </section>
-  </main>
+  </section>
 </template>
 
 <script setup lang="ts">
@@ -317,37 +320,53 @@ import {
   readInstalledLanguages,
 } from './application-api'
 import { useStoreLanguage } from './language'
-import ProductsPanel from './ProductsPanel.vue'
 
-type CategoryStatus = 'active' | 'archived'
+type ProductStatus = 'draft' | 'active' | 'archived'
+
+interface Product {
+  product_id: string
+  sku: string
+  slug: string
+  name: string
+  short_description: string
+  description: string
+  status: ProductStatus
+  price_minor: number
+  track_inventory: boolean
+  created_at: string
+  updated_at: string
+}
+
+interface ProductTranslation {
+  language_code: string
+  name: string
+  short_description: string
+  description: string
+  meta_title: string
+  meta_description: string
+  created_at: string
+  updated_at: string
+}
+
+interface ProductList {
+  items: Product[]
+  total: number
+  limit: number
+  offset: number
+}
+
+interface ProductDetail {
+  product: Product
+  legacy_language_code: string | null
+  translations: ProductTranslation[]
+  category_ids: string[]
+}
 
 interface Category {
   category_id: string
   slug: string
   name: string
-  description: string
-  parent_id: string | null
-  sort_order: number
-  status: CategoryStatus
-  created_at: string
-  updated_at: string
-}
-
-interface CategoryTranslation {
-  language_code: string
-  name: string
-  description: string
-  meta_title: string
-  meta_description: string
-  created_at: string
-  updated_at: string
-}
-
-interface LocalizedCategoryDraft {
-  name: string
-  description: string
-  meta_title: string
-  meta_description: string
+  status: 'active' | 'archived'
 }
 
 interface CategoryList {
@@ -357,57 +376,59 @@ interface CategoryList {
   offset: number
 }
 
-interface CategoryDetail {
-  category: Category
-  legacy_language_code: string | null
-  translations: CategoryTranslation[]
+interface LocalizedProductDraft {
+  name: string
+  short_description: string
+  description: string
+  meta_title: string
+  meta_description: string
 }
 
 const { language: uiLanguage, t } = useStoreLanguage()
 
-const categories = ref<Category[]>([])
-const allCategories = ref<Category[]>([])
+const products = ref<Product[]>([])
+const categoryOptions = ref<Category[]>([])
 const installedLanguages = ref<string[]>(['en'])
 const contentLanguage = ref('en')
 const contentLanguageFollowsUi = ref(true)
-const translations = ref<Record<string, CategoryTranslation>>({})
-const localizedDrafts = ref<Record<string, LocalizedCategoryDraft>>({})
-const legacyCategory = ref<Category | null>(null)
+const translations = ref<Record<string, ProductTranslation>>({})
+const localizedDrafts = ref<Record<string, LocalizedProductDraft>>({})
+const legacyProduct = ref<Product | null>(null)
 const legacySeedLanguage = ref<string | null>(null)
 
 const total = ref(0)
 const limit = 20
 const offset = ref(0)
 const search = ref('')
-const statusFilter = ref<'' | CategoryStatus>('')
+const statusFilter = ref<'' | ProductStatus>('')
+const sort = ref<'name_asc' | 'name_desc' | 'updated_desc' | 'sku_asc'>(
+  'updated_desc',
+)
 const busy = ref(false)
 const saving = ref(false)
+const editing = ref(false)
 const error = ref('')
 const message = ref('')
-const editing = ref(false)
 
 const form = reactive({
-  category_id: '',
-  name: '',
+  product_id: '',
+  sku: '',
   slug: '',
+  price_minor: 0,
+  track_inventory: true,
+  category_ids: [] as string[],
+  name: '',
+  short_description: '',
   description: '',
   meta_title: '',
   meta_description: '',
-  parent_id: '',
-  sort_order: 0,
 })
-
-const parentOptions = computed(() =>
-  allCategories.value.filter(
-    (category) => category.category_id !== form.category_id,
-  ),
-)
 
 const pageStart = computed(() =>
   total.value === 0 ? 0 : offset.value + 1,
 )
 const pageEnd = computed(() =>
-  Math.min(offset.value + categories.value.length, total.value),
+  Math.min(offset.value + products.value.length, total.value),
 )
 
 function token(): string {
@@ -430,38 +451,39 @@ async function operation<T>(
 
 function clearLocalizedForm() {
   form.name = ''
+  form.short_description = ''
   form.description = ''
   form.meta_title = ''
   form.meta_description = ''
 }
 
-function localizedFormSnapshot(): LocalizedCategoryDraft {
+function localizedSnapshot(): LocalizedProductDraft {
   return {
     name: form.name,
+    short_description: form.short_description,
     description: form.description,
     meta_title: form.meta_title,
     meta_description: form.meta_description,
   }
 }
 
-function baselineForLanguage(code: string): LocalizedCategoryDraft {
+function baselineForLanguage(code: string): LocalizedProductDraft {
   const stored = translations.value[code]
   if (stored) {
     return {
       name: stored.name,
+      short_description: stored.short_description,
       description: stored.description,
       meta_title: stored.meta_title,
       meta_description: stored.meta_description,
     }
   }
 
-  if (
-    code === legacySeedLanguage.value &&
-    legacyCategory.value
-  ) {
+  if (code === legacySeedLanguage.value && legacyProduct.value) {
     return {
-      name: legacyCategory.value.name,
-      description: legacyCategory.value.description,
+      name: legacyProduct.value.name,
+      short_description: legacyProduct.value.short_description,
+      description: legacyProduct.value.description,
       meta_title: '',
       meta_description: '',
     }
@@ -469,6 +491,7 @@ function baselineForLanguage(code: string): LocalizedCategoryDraft {
 
   return {
     name: '',
+    short_description: '',
     description: '',
     meta_title: '',
     meta_description: '',
@@ -478,7 +501,7 @@ function baselineForLanguage(code: string): LocalizedCategoryDraft {
 function snapshotLocalizedDraft(code: string) {
   localizedDrafts.value = {
     ...localizedDrafts.value,
-    [code]: localizedFormSnapshot(),
+    [code]: localizedSnapshot(),
   }
 }
 
@@ -486,39 +509,34 @@ function hasUnsavedDraft(code: string): boolean {
   const draft = localizedDrafts.value[code]
   if (!draft) return false
   const baseline = baselineForLanguage(code)
-  return (
-    draft.name !== baseline.name ||
-    draft.description !== baseline.description ||
-    draft.meta_title !== baseline.meta_title ||
-    draft.meta_description !== baseline.meta_description
+  return Object.keys(baseline).some(
+    (key) =>
+      draft[key as keyof LocalizedProductDraft] !==
+      baseline[key as keyof LocalizedProductDraft],
   )
 }
 
 function applyLanguageToForm(code: string) {
   const draft = localizedDrafts.value[code]
   if (draft) {
-    form.name = draft.name
-    form.description = draft.description
-    form.meta_title = draft.meta_title
-    form.meta_description = draft.meta_description
+    Object.assign(form, draft)
     return
   }
 
   const stored = translations.value[code]
   if (stored) {
     form.name = stored.name
+    form.short_description = stored.short_description
     form.description = stored.description
     form.meta_title = stored.meta_title
     form.meta_description = stored.meta_description
     return
   }
 
-  if (
-    code === legacySeedLanguage.value &&
-    legacyCategory.value
-  ) {
-    form.name = legacyCategory.value.name
-    form.description = legacyCategory.value.description
+  if (code === legacySeedLanguage.value && legacyProduct.value) {
+    form.name = legacyProduct.value.name
+    form.short_description = legacyProduct.value.short_description
+    form.description = legacyProduct.value.description
     form.meta_title = ''
     form.meta_description = ''
     return
@@ -547,7 +565,7 @@ async function loadInstalledLanguages() {
   }
 }
 
-async function loadAllCategories() {
+async function loadCategoryOptions() {
   const collected: Category[] = []
   let cursor = 0
   let expected = 0
@@ -567,45 +585,45 @@ async function loadAllCategories() {
     if (result.items.length === 0) break
   } while (cursor < expected)
 
-  allCategories.value = collected
+  categoryOptions.value = collected
 }
 
-async function loadCategories() {
+async function loadProducts() {
   busy.value = true
   error.value = ''
   try {
     const payload: Record<string, unknown> = {
       language_code: contentLanguage.value,
+      sort: sort.value,
       limit,
       offset: offset.value,
     }
     if (search.value) payload.search = search.value
     if (statusFilter.value) payload.status = statusFilter.value
 
-    const result = await operation<CategoryList>(
-      'catalog_list_categories',
+    const result = await operation<ProductList>(
+      'catalog_list_products',
       payload,
     )
-
-    categories.value = result.items
+    products.value = result.items
     total.value = result.total
   } catch (reason) {
     error.value =
       reason instanceof Error
         ? reason.message
         : t(
-            'Категориите не могат да бъдат заредени.',
-            'Could not load categories.',
+            'Продуктите не могат да бъдат заредени.',
+            'Could not load products.',
           )
   } finally {
     busy.value = false
   }
 }
 
-async function loadCategoryDetail(categoryId: string) {
-  const detail = await operation<CategoryDetail>(
-    'catalog_get_category',
-    { category_id: categoryId },
+async function loadProductDetail(productId: string) {
+  const detail = await operation<ProductDetail>(
+    'catalog_get_product',
+    { product_id: productId },
   )
 
   translations.value = Object.fromEntries(
@@ -614,17 +632,19 @@ async function loadCategoryDetail(categoryId: string) {
       translation,
     ]),
   )
-  legacyCategory.value = detail.category
+  legacyProduct.value = detail.product
   legacySeedLanguage.value =
     detail.legacy_language_code ||
     (detail.translations.length === 0
       ? contentLanguage.value
       : null)
 
-  form.category_id = detail.category.category_id
-  form.slug = detail.category.slug
-  form.parent_id = detail.category.parent_id || ''
-  form.sort_order = detail.category.sort_order
+  form.product_id = detail.product.product_id
+  form.sku = detail.product.sku
+  form.slug = detail.product.slug
+  form.price_minor = detail.product.price_minor
+  form.track_inventory = detail.product.track_inventory
+  form.category_ids = [...detail.category_ids]
   applyLanguageToForm(contentLanguage.value)
 }
 
@@ -635,33 +655,35 @@ function clearNotice() {
 
 function startCreate() {
   clearNotice()
-  form.category_id = ''
+  form.product_id = ''
+  form.sku = ''
   form.slug = ''
-  form.parent_id = ''
-  form.sort_order = 0
+  form.price_minor = 0
+  form.track_inventory = true
+  form.category_ids = []
   translations.value = {}
   localizedDrafts.value = {}
-  legacyCategory.value = null
+  legacyProduct.value = null
   legacySeedLanguage.value = null
   clearLocalizedForm()
   editing.value = true
 }
 
-async function startEdit(category: Category) {
+async function startEdit(product: Product) {
   clearNotice()
   localizedDrafts.value = {}
   editing.value = true
   saving.value = true
   try {
-    await loadCategoryDetail(category.category_id)
+    await loadProductDetail(product.product_id)
   } catch (reason) {
     editing.value = false
     error.value =
       reason instanceof Error
         ? reason.message
         : t(
-            'Категорията не може да бъде заредена.',
-            'Could not load category.',
+            'Продуктът не може да бъде зареден.',
+            'Could not load product.',
           )
   } finally {
     saving.value = false
@@ -675,9 +697,7 @@ function cancelEdit() {
 
 function switchEditorLanguage(code: string) {
   if (code === contentLanguage.value) return
-  if (editing.value) {
-    snapshotLocalizedDraft(contentLanguage.value)
-  }
+  if (editing.value) snapshotLocalizedDraft(contentLanguage.value)
   contentLanguageFollowsUi.value = false
   contentLanguage.value = code
   applyLanguageToForm(code)
@@ -688,27 +708,21 @@ async function changeListLanguage(event: Event) {
   const code = target.value
   if (code === contentLanguage.value) return
 
-  if (editing.value) {
-    snapshotLocalizedDraft(contentLanguage.value)
-  }
-
+  if (editing.value) snapshotLocalizedDraft(contentLanguage.value)
   contentLanguageFollowsUi.value = false
   contentLanguage.value = code
-
-  if (editing.value) {
-    applyLanguageToForm(code)
-  }
+  if (editing.value) applyLanguageToForm(code)
 
   offset.value = 0
-  await Promise.all([loadCategories(), loadAllCategories()])
+  await Promise.all([loadProducts(), loadCategoryOptions()])
 }
 
-async function saveCategory() {
+async function saveProduct() {
   clearNotice()
-  if (!form.name || !form.slug) {
+  if (!form.name || !form.sku || !form.slug) {
     error.value = t(
-      'Името и slug са задължителни.',
-      'Name and slug are required.',
+      'Име, SKU и slug са задължителни.',
+      'Name, SKU and slug are required.',
     )
     return
   }
@@ -718,187 +732,165 @@ async function saveCategory() {
     const content = {
       language_code: contentLanguage.value,
       name: form.name,
+      short_description: form.short_description,
       description: form.description,
       meta_title: form.meta_title,
       meta_description: form.meta_description,
     }
-
     const payload: Record<string, unknown> = {
+      sku: form.sku,
       slug: form.slug,
-      parent_id: form.parent_id || null,
-      sort_order: Number(form.sort_order),
+      price_minor: Number(form.price_minor),
+      track_inventory: Boolean(form.track_inventory),
+      category_ids: [...form.category_ids],
       content,
     }
 
-    let operationId = 'category_create'
-    if (form.category_id) {
-      operationId = 'category_update'
-      payload.category_id = form.category_id
+    let operationId = 'product_create'
+    if (form.product_id) {
+      operationId = 'product_update'
+      payload.product_id = form.product_id
     }
 
-    const result = await operation<{ category: Category }>(
+    const result = await operation<{ product: Product }>(
       operationId,
       payload,
       createRequestId(),
     )
 
-    const categoryId =
-      form.category_id || result.category.category_id
+    const productId = form.product_id || result.product.product_id
     const savedLanguage = contentLanguage.value
     const remainingDrafts = { ...localizedDrafts.value }
     delete remainingDrafts[savedLanguage]
     localizedDrafts.value = remainingDrafts
 
-    message.value = form.category_id
-      ? t('Категорията е обновена.', 'Category updated.')
-      : t('Категорията е създадена.', 'Category created.')
+    message.value = form.product_id
+      ? t('Продуктът е обновен.', 'Product updated.')
+      : t('Продуктът е създаден като чернова.', 'Product created as draft.')
 
-    await loadCategoryDetail(categoryId)
-    await Promise.all([loadCategories(), loadAllCategories()])
+    await loadProductDetail(productId)
+    await loadProducts()
   } catch (reason) {
     error.value =
       reason instanceof Error
         ? reason.message
         : t(
-            'Категорията не може да бъде записана.',
-            'Could not save category.',
+            'Продуктът не може да бъде записан.',
+            'Could not save product.',
           )
   } finally {
     saving.value = false
   }
 }
 
-async function toggleStatus(category: Category) {
+async function changeStatus(product: Product, event: Event) {
+  const target = event.target as HTMLSelectElement
+  const status = target.value as ProductStatus
+  if (status === product.status) return
+
   clearNotice()
   saving.value = true
   try {
-    const status: CategoryStatus =
-      category.status === 'active' ? 'archived' : 'active'
-
     await operation(
-      'category_set_status',
+      'product_set_status',
       {
-        category_id: category.category_id,
+        product_id: product.product_id,
         status,
       },
       createRequestId(),
     )
-
-    message.value =
-      status === 'active'
-        ? t('Категорията е активирана.', 'Category activated.')
-        : t('Категорията е архивирана.', 'Category archived.')
-    await Promise.all([loadCategories(), loadAllCategories()])
+    message.value = t(
+      'Състоянието на продукта е променено.',
+      'Product status updated.',
+    )
+    await loadProducts()
   } catch (reason) {
+    target.value = product.status
     error.value =
       reason instanceof Error
         ? reason.message
         : t(
-            'Състоянието на категорията не може да бъде променено.',
-            'Could not change category status.',
+            'Състоянието на продукта не може да бъде променено.',
+            'Could not change product status.',
           )
   } finally {
     saving.value = false
   }
 }
 
-function parentName(parentId: string | null): string {
-  if (!parentId) return '—'
-  return (
-    allCategories.value.find(
-      (category) => category.category_id === parentId,
-    )?.name || parentId
-  )
-}
-
-function statusLabel(status: CategoryStatus): string {
-  return status === 'active'
-    ? t('Активна', 'Active')
-    : t('Архивирана', 'Archived')
+function statusLabel(status: ProductStatus): string {
+  if (status === 'active') return t('Активен', 'Active')
+  if (status === 'archived') return t('Архивиран', 'Archived')
+  return t('Чернова', 'Draft')
 }
 
 async function reloadFromStart() {
   offset.value = 0
-  await loadCategories()
+  await loadProducts()
 }
 
 async function previousPage() {
   offset.value = Math.max(0, offset.value - limit)
-  await loadCategories()
+  await loadProducts()
 }
 
 async function nextPage() {
   if (offset.value + limit >= total.value) return
   offset.value += limit
-  await loadCategories()
+  await loadProducts()
 }
 
 watch(uiLanguage, async (newLanguage) => {
   await loadInstalledLanguages()
-
   if (
     !contentLanguageFollowsUi.value ||
-    !installedLanguages.value.includes(newLanguage)
+    !installedLanguages.value.includes(newLanguage) ||
+    contentLanguage.value === newLanguage
   ) {
     return
   }
 
-  if (contentLanguage.value === newLanguage) return
-
-  if (editing.value) {
-    snapshotLocalizedDraft(contentLanguage.value)
-  }
-
+  if (editing.value) snapshotLocalizedDraft(contentLanguage.value)
   contentLanguage.value = newLanguage
   offset.value = 0
-
-  if (editing.value) {
-    applyLanguageToForm(newLanguage)
-  }
-
-  await Promise.all([loadCategories(), loadAllCategories()])
+  if (editing.value) applyLanguageToForm(newLanguage)
+  await Promise.all([loadProducts(), loadCategoryOptions()])
 })
 
 onMounted(async () => {
   contentLanguage.value = uiLanguage.value
   contentLanguageFollowsUi.value = true
   await loadInstalledLanguages()
-  await Promise.all([loadCategories(), loadAllCategories()])
+  await Promise.all([loadProducts(), loadCategoryOptions()])
 })
 </script>
 
 <style scoped>
-.store-page {
-  max-width: 78rem;
-  margin: 0 auto;
-  padding: 2rem;
+.products-shell {
   display: grid;
   gap: 1rem;
-  color: var(--text-primary);
+  margin-bottom: 2rem;
 }
 
-.store-page p,
-.store-page .section-header > span,
-.store-page .pager,
-.section-help {
-  color: var(--text-secondary);
-}
-
-.page-header,
 .section-header,
 .actions,
 .row-actions,
 .pager,
-.filters {
+.filters,
+.language-tabs {
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
 
-.page-header,
 .section-header,
 .pager {
   justify-content: space-between;
+}
+
+.section-header p {
+  margin: 0.25rem 0 0;
+  color: var(--text-secondary);
 }
 
 .panel {
@@ -917,7 +909,6 @@ onMounted(async () => {
 label {
   display: grid;
   gap: 0.35rem;
-  color: var(--text-primary);
 }
 
 input,
@@ -939,6 +930,10 @@ textarea {
   color: var(--text-primary);
 }
 
+select[multiple] {
+  min-height: 8rem;
+}
+
 textarea {
   resize: vertical;
 }
@@ -951,10 +946,6 @@ button {
   cursor: pointer;
   background: var(--button-primary-bg);
   color: var(--button-primary-text);
-}
-
-button:hover:not(:disabled) {
-  background: var(--button-primary-hover);
 }
 
 button.secondary,
@@ -975,28 +966,14 @@ button:disabled {
 }
 
 .language-tabs {
-  display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
   margin: 0.75rem 0 1rem;
-}
-
-.language-tab {
-  min-width: 4.5rem;
 }
 
 .language-tab.active {
   background: var(--button-primary-bg);
   color: var(--button-primary-text);
   border-color: var(--button-primary-bg);
-}
-
-.legacy-note {
-  margin: 0 0 1rem;
-  padding: 0.7rem 0.8rem;
-  border: 1px solid var(--card-border);
-  border-radius: var(--border-radius-sm);
-  background: var(--panel-bg);
 }
 
 .form-grid {
@@ -1009,6 +986,18 @@ button:disabled {
   grid-column: 1 / -1;
 }
 
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  align-self: end;
+  min-height: 2.5rem;
+}
+
+.checkbox-label input {
+  min-height: auto;
+}
+
 .table-wrap {
   overflow-x: auto;
 }
@@ -1016,7 +1005,6 @@ button:disabled {
 table {
   width: 100%;
   border-collapse: collapse;
-  color: var(--text-primary);
 }
 
 th,
@@ -1027,12 +1015,9 @@ td {
   vertical-align: middle;
 }
 
-th {
+th,
+.pager {
   color: var(--text-secondary);
-}
-
-code {
-  color: var(--text-primary);
 }
 
 .actions-column {
@@ -1042,10 +1027,9 @@ code {
 
 .status {
   display: inline-block;
+  border: 1px solid currentColor;
   border-radius: 999px;
   padding: 0.2rem 0.55rem;
-  border: 1px solid currentColor;
-  font-size: 0.85rem;
 }
 
 .status.active {
@@ -1054,6 +1038,14 @@ code {
 
 .status.archived {
   color: var(--text-muted);
+}
+
+.status.draft {
+  color: var(--text-secondary);
+}
+
+.status-select {
+  min-width: 7.5rem;
 }
 
 .message {
@@ -1079,11 +1071,6 @@ code {
 }
 
 @media (max-width: 720px) {
-  .store-page {
-    padding: 1rem;
-  }
-
-  .page-header,
   .section-header,
   .pager {
     align-items: stretch;
