@@ -1,37 +1,44 @@
 <template>
-  <main class="store-catalog-page">
+  <main class="store-page">
     <header class="page-header">
       <div>
-        <h1>Store catalog</h1>
-        <p>Manage Store categories. Products arrive in the next S1 increment.</p>
+        <h1>{{ t('Каталог на магазина', 'Store catalog') }}</h1>
+        <p>
+          {{
+            t(
+              'Управление на категориите. Продуктите идват в следващата стъпка на S1.',
+              'Manage Store categories. Products arrive in the next S1 increment.',
+            )
+          }}
+        </p>
       </div>
       <button type="button" class="secondary" @click="startCreate">
-        New category
+        {{ t('Нова категория', 'New category') }}
       </button>
     </header>
 
     <section class="panel filters">
       <label>
-        Search
+        <span>{{ t('Търсене', 'Search') }}</span>
         <input
           v-model.trim="search"
           maxlength="120"
-          placeholder="Name or slug"
+          :placeholder="t('Име или slug', 'Name or slug')"
           @keyup.enter="reloadFromStart"
         />
       </label>
 
       <label>
-        Status
+        <span>{{ t('Състояние', 'Status') }}</span>
         <select v-model="statusFilter" @change="reloadFromStart">
-          <option value="">All</option>
-          <option value="active">Active</option>
-          <option value="archived">Archived</option>
+          <option value="">{{ t('Всички', 'All') }}</option>
+          <option value="active">{{ t('Активни', 'Active') }}</option>
+          <option value="archived">{{ t('Архивирани', 'Archived') }}</option>
         </select>
       </label>
 
       <button type="button" @click="reloadFromStart" :disabled="busy">
-        Apply
+        {{ t('Приложи', 'Apply') }}
       </button>
     </section>
 
@@ -40,20 +47,26 @@
 
     <section v-if="editing" class="panel editor">
       <div class="section-header">
-        <h2>{{ form.category_id ? 'Edit category' : 'New category' }}</h2>
+        <h2>
+          {{
+            form.category_id
+              ? t('Редакция на категория', 'Edit category')
+              : t('Нова категория', 'New category')
+          }}
+        </h2>
         <button type="button" class="secondary" @click="cancelEdit">
-          Close
+          {{ t('Затвори', 'Close') }}
         </button>
       </div>
 
       <div class="form-grid">
         <label>
-          Name
+          <span>{{ t('Име', 'Name') }}</span>
           <input v-model.trim="form.name" maxlength="160" />
         </label>
 
         <label>
-          Slug
+          <span>Slug</span>
           <input
             v-model.trim="form.slug"
             maxlength="120"
@@ -62,22 +75,28 @@
         </label>
 
         <label>
-          Parent
+          <span>{{ t('Родителска категория', 'Parent') }}</span>
           <select v-model="form.parent_id">
-            <option value="">Root category</option>
+            <option value="">
+              {{ t('Основна категория', 'Root category') }}
+            </option>
             <option
               v-for="category in parentOptions"
               :key="category.category_id"
               :value="category.category_id"
             >
               {{ category.name }}
-              {{ category.status === 'archived' ? '(archived)' : '' }}
+              {{
+                category.status === 'archived'
+                  ? t('(архивирана)', '(archived)')
+                  : ''
+              }}
             </option>
           </select>
         </label>
 
         <label>
-          Sort order
+          <span>{{ t('Ред', 'Sort order') }}</span>
           <input
             v-model.number="form.sort_order"
             type="number"
@@ -87,7 +106,7 @@
         </label>
 
         <label class="wide">
-          Description
+          <span>{{ t('Описание', 'Description') }}</span>
           <textarea
             v-model.trim="form.description"
             rows="4"
@@ -98,35 +117,44 @@
 
       <div class="actions">
         <button type="button" @click="saveCategory" :disabled="saving">
-          {{ saving ? 'Saving…' : 'Save category' }}
+          {{
+            saving
+              ? t('Записване…', 'Saving…')
+              : t('Запази категорията', 'Save category')
+          }}
         </button>
         <button type="button" class="secondary" @click="cancelEdit">
-          Cancel
+          {{ t('Отказ', 'Cancel') }}
         </button>
       </div>
     </section>
 
     <section class="panel">
       <div class="section-header">
-        <h2>Categories</h2>
-        <span>{{ total }} total</span>
+        <h2>{{ t('Категории', 'Categories') }}</h2>
+        <span>
+          {{ total }}
+          {{ t('общо', 'total') }}
+        </span>
       </div>
 
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Name</th>
+              <th>{{ t('Име', 'Name') }}</th>
               <th>Slug</th>
-              <th>Parent</th>
-              <th>Status</th>
-              <th>Order</th>
-              <th class="actions-column">Actions</th>
+              <th>{{ t('Родител', 'Parent') }}</th>
+              <th>{{ t('Състояние', 'Status') }}</th>
+              <th>{{ t('Ред', 'Order') }}</th>
+              <th class="actions-column">{{ t('Действия', 'Actions') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="!busy && categories.length === 0">
-              <td colspan="6" class="empty">No categories found.</td>
+              <td colspan="6" class="empty">
+                {{ t('Няма намерени категории.', 'No categories found.') }}
+              </td>
             </tr>
             <tr v-for="category in categories" :key="category.category_id">
               <td>{{ category.name }}</td>
@@ -134,7 +162,7 @@
               <td>{{ parentName(category.parent_id) }}</td>
               <td>
                 <span class="status" :class="category.status">
-                  {{ category.status }}
+                  {{ statusLabel(category.status) }}
                 </span>
               </td>
               <td>{{ category.sort_order }}</td>
@@ -145,7 +173,7 @@
                     class="secondary"
                     @click="startEdit(category)"
                   >
-                    Edit
+                    {{ t('Редакция', 'Edit') }}
                   </button>
                   <button
                     type="button"
@@ -153,7 +181,11 @@
                     :disabled="saving"
                     @click="toggleStatus(category)"
                   >
-                    {{ category.status === 'active' ? 'Archive' : 'Activate' }}
+                    {{
+                      category.status === 'active'
+                        ? t('Архивирай', 'Archive')
+                        : t('Активирай', 'Activate')
+                    }}
                   </button>
                 </div>
               </td>
@@ -169,10 +201,12 @@
           :disabled="busy || offset === 0"
           @click="previousPage"
         >
-          Previous
+          {{ t('Назад', 'Previous') }}
         </button>
         <span>
-          {{ pageStart }}–{{ pageEnd }} of {{ total }}
+          {{ pageStart }}–{{ pageEnd }}
+          {{ t('от', 'of') }}
+          {{ total }}
         </span>
         <button
           type="button"
@@ -180,7 +214,7 @@
           :disabled="busy || offset + limit >= total"
           @click="nextPage"
         >
-          Next
+          {{ t('Напред', 'Next') }}
         </button>
       </footer>
     </section>
@@ -189,6 +223,12 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+
+import {
+  createRequestId,
+  invokeApplicationOperation,
+} from './application-api'
+import { useStoreLanguage } from './language'
 
 type CategoryStatus = 'active' | 'archived'
 
@@ -210,6 +250,8 @@ interface CategoryList {
   limit: number
   offset: number
 }
+
+const { t } = useStoreLanguage()
 
 const categories = ref<Category[]>([])
 const allCategories = ref<Category[]>([])
@@ -235,7 +277,7 @@ const form = reactive({
 
 const parentOptions = computed(() =>
   allCategories.value.filter(
-    category => category.category_id !== form.category_id,
+    (category) => category.category_id !== form.category_id,
   ),
 )
 
@@ -250,35 +292,18 @@ function token(): string {
   return localStorage.getItem('authToken') || ''
 }
 
-async function operation(
+async function operation<T>(
   operationId: string,
   payload: Record<string, unknown>,
   idempotencyKey?: string,
-): Promise<Record<string, unknown>> {
-  const body: Record<string, unknown> = { payload }
-  if (idempotencyKey) body.idempotency_key = idempotencyKey
-
-  const response = await fetch(
-    `/api/v1/application-extensions/org.3mm.store/operator/operations/${operationId}`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token()}`,
-      },
-      body: JSON.stringify(body),
-    },
+): Promise<T> {
+  return await invokeApplicationOperation<T>(
+    'operator',
+    operationId,
+    token(),
+    payload,
+    idempotencyKey,
   )
-
-  const data = await response.json().catch(() => ({}))
-  if (!response.ok) {
-    const detail =
-      typeof data?.detail === 'string'
-        ? data.detail
-        : 'Store operation failed'
-    throw new Error(detail)
-  }
-  return data
 }
 
 async function loadAllCategories() {
@@ -287,10 +312,10 @@ async function loadAllCategories() {
   let expected = 0
 
   do {
-    const result = (await operation(
+    const result = await operation<CategoryList>(
       'catalog_list_categories',
       { limit: 100, offset: cursor },
-    )) as unknown as CategoryList
+    )
     collected.push(...result.items)
     expected = result.total
     cursor += result.items.length
@@ -311,16 +336,21 @@ async function loadCategories() {
     if (search.value) payload.search = search.value
     if (statusFilter.value) payload.status = statusFilter.value
 
-    const result = (await operation(
+    const result = await operation<CategoryList>(
       'catalog_list_categories',
       payload,
-    )) as unknown as CategoryList
+    )
 
     categories.value = result.items
     total.value = result.total
   } catch (reason) {
     error.value =
-      reason instanceof Error ? reason.message : 'Could not load categories'
+      reason instanceof Error
+        ? reason.message
+        : t(
+            'Категориите не могат да бъдат заредени.',
+            'Could not load categories.',
+          )
   } finally {
     busy.value = false
   }
@@ -360,7 +390,10 @@ function cancelEdit() {
 async function saveCategory() {
   clearNotice()
   if (!form.name || !form.slug) {
-    error.value = 'Name and slug are required.'
+    error.value = t(
+      'Името и slug са задължителни.',
+      'Name and slug are required.',
+    )
     return
   }
 
@@ -380,15 +413,25 @@ async function saveCategory() {
       payload.category_id = form.category_id
     }
 
-    await operation(operationId, payload, crypto.randomUUID())
+    await operation(
+      operationId,
+      payload,
+      createRequestId(),
+    )
+
     message.value = form.category_id
-      ? 'Category updated.'
-      : 'Category created.'
+      ? t('Категорията е обновена.', 'Category updated.')
+      : t('Категорията е създадена.', 'Category created.')
     editing.value = false
     await Promise.all([loadCategories(), loadAllCategories()])
   } catch (reason) {
     error.value =
-      reason instanceof Error ? reason.message : 'Could not save category'
+      reason instanceof Error
+        ? reason.message
+        : t(
+            'Категорията не може да бъде записана.',
+            'Could not save category.',
+          )
   } finally {
     saving.value = false
   }
@@ -400,22 +443,29 @@ async function toggleStatus(category: Category) {
   try {
     const status: CategoryStatus =
       category.status === 'active' ? 'archived' : 'active'
+
     await operation(
       'category_set_status',
       {
         category_id: category.category_id,
         status,
       },
-      crypto.randomUUID(),
+      createRequestId(),
     )
+
     message.value =
-      status === 'active' ? 'Category activated.' : 'Category archived.'
+      status === 'active'
+        ? t('Категорията е активирана.', 'Category activated.')
+        : t('Категорията е архивирана.', 'Category archived.')
     await Promise.all([loadCategories(), loadAllCategories()])
   } catch (reason) {
     error.value =
       reason instanceof Error
         ? reason.message
-        : 'Could not change category status'
+        : t(
+            'Състоянието на категорията не може да бъде променено.',
+            'Could not change category status.',
+          )
   } finally {
     saving.value = false
   }
@@ -425,9 +475,15 @@ function parentName(parentId: string | null): string {
   if (!parentId) return '—'
   return (
     allCategories.value.find(
-      category => category.category_id === parentId,
+      (category) => category.category_id === parentId,
     )?.name || parentId
   )
+}
+
+function statusLabel(status: CategoryStatus): string {
+  return status === 'active'
+    ? t('Активна', 'Active')
+    : t('Архивирана', 'Archived')
 }
 
 async function reloadFromStart() {
@@ -452,12 +508,19 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.store-catalog-page {
+.store-page {
   max-width: 78rem;
   margin: 0 auto;
   padding: 2rem;
   display: grid;
   gap: 1rem;
+  color: var(--text-primary);
+}
+
+.store-page p,
+.store-page .section-header > span,
+.store-page .pager {
+  color: var(--text-secondary);
 }
 
 .page-header,
@@ -478,10 +541,11 @@ onMounted(async () => {
 }
 
 .panel {
-  border: 1px solid var(--border-color, #d7dbe0);
-  border-radius: 0.75rem;
+  border: 1px solid var(--card-border);
+  border-radius: var(--border-radius-md);
   padding: 1rem;
-  background: var(--surface-color, #fff);
+  background: var(--card-bg);
+  color: var(--text-primary);
 }
 
 .filters {
@@ -492,6 +556,7 @@ onMounted(async () => {
 label {
   display: grid;
   gap: 0.35rem;
+  color: var(--text-primary);
 }
 
 input,
@@ -504,12 +569,13 @@ button {
 input,
 select,
 textarea {
+  box-sizing: border-box;
   min-height: 2.5rem;
-  border: 1px solid var(--border-color, #c7cbd1);
-  border-radius: 0.5rem;
+  border: 1px solid var(--input-border);
+  border-radius: var(--border-radius-sm);
   padding: 0.55rem 0.7rem;
-  background: var(--surface-color, #fff);
-  color: inherit;
+  background: var(--input-bg);
+  color: var(--text-primary);
 }
 
 textarea {
@@ -519,17 +585,25 @@ textarea {
 button {
   min-height: 2.5rem;
   border: 1px solid transparent;
-  border-radius: 0.5rem;
+  border-radius: var(--border-radius-sm);
   padding: 0.55rem 0.85rem;
   cursor: pointer;
-  background: var(--primary-color, #2f6fed);
-  color: white;
+  background: var(--button-primary-bg);
+  color: var(--button-primary-text);
+}
+
+button:hover:not(:disabled) {
+  background: var(--button-primary-hover);
 }
 
 button.secondary {
-  background: transparent;
-  color: inherit;
-  border-color: var(--border-color, #c7cbd1);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border-color: var(--card-border);
+}
+
+button.secondary:hover:not(:disabled) {
+  background: var(--panel-bg);
 }
 
 button:disabled {
@@ -554,14 +628,23 @@ button:disabled {
 table {
   width: 100%;
   border-collapse: collapse;
+  color: var(--text-primary);
 }
 
 th,
 td {
   padding: 0.7rem;
-  border-bottom: 1px solid var(--border-color, #e3e6ea);
+  border-bottom: 1px solid var(--card-border);
   text-align: left;
   vertical-align: middle;
+}
+
+th {
+  color: var(--text-secondary);
+}
+
+code {
+  color: var(--text-primary);
 }
 
 .actions-column {
@@ -577,31 +660,38 @@ td {
   font-size: 0.85rem;
 }
 
+.status.active {
+  color: var(--success-color);
+}
+
 .status.archived {
-  opacity: 0.6;
+  color: var(--text-muted);
 }
 
 .message {
   margin: 0;
   padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
+  border-radius: var(--border-radius-sm);
+  background: var(--card-bg);
 }
 
 .message.error {
-  border: 1px solid #b42318;
+  border: 1px solid var(--error-color);
+  color: var(--error-color);
 }
 
 .message.success {
-  border: 1px solid #2e7d32;
+  border: 1px solid var(--success-color);
+  color: var(--success-color);
 }
 
 .empty {
   text-align: center;
-  opacity: 0.7;
+  color: var(--text-muted);
 }
 
 @media (max-width: 720px) {
-  .store-catalog-page {
+  .store-page {
     padding: 1rem;
   }
 
@@ -618,6 +708,10 @@ td {
 
   .wide {
     grid-column: auto;
+  }
+
+  .row-actions {
+    flex-wrap: wrap;
   }
 }
 </style>

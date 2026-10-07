@@ -1,9 +1,9 @@
 {
   "application_extension_version": 1,
   "module_id": "org.3mm.store",
-  "version": "0.1.0-dev.1",
+  "version": "0.1.0-dev.2",
   "service": {
-    "artifact": "service/three_mm_store-0.1.0.dev1-py3-none-any.whl",
+    "artifact": "service/three_mm_store-0.1.0.dev2-py3-none-any.whl",
     "artifact_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
     "entrypoint": "three_mm_store.service:create_service",
     "sdk_version": "1.3",

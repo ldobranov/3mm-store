@@ -2,7 +2,7 @@
 
 Status: **implemented; physical acceptance pending**
 
-Version: `0.1.0-dev.1`
+Version: `0.1.0-dev.2`
 
 Branch: `s1/categories`
 
@@ -85,7 +85,7 @@ Application Extension operation context.
 - archive/activate actions;
 - safe display of operation failures.
 
-It calls only:
+It resolves the Core API origin through the platform `/runtime-config.json` contract and calls only:
 
 ```text
 /api/v1/application-extensions/org.3mm.store/operator/operations/...
@@ -93,12 +93,22 @@ It calls only:
 
 No legacy `/api/store/*` endpoint is used.
 
+## Host UI compatibility
+
+The Store compiled UI follows host-owned presentation state rather than carrying a Store theme or locale:
+
+- BG/EN follows `preferredLanguage` and the platform `language-changed` event;
+- light/dark/custom themes are inherited through 3mm CSS tokens such as `--card-bg`, `--text-primary`, `--input-bg` and button tokens;
+- API requests resolve the configured backend origin from `/runtime-config.json`, matching other Application Extensions.
+
+No Store-specific Core route, theme or language service is introduced.
+
 ## Storage compatibility
 
 S1.1 needs no schema migration beyond accepted revision `0001`; the S0 schema
 already contains categories, slug history and idempotency records.
 
-Upgrading `0.1.0-dev.0` to `0.1.0-dev.1` therefore keeps:
+Upgrading from the accepted S0 package or the transport-broken `0.1.0-dev.1` build to `0.1.0-dev.2` therefore keeps:
 
 ```text
 schema_revision = 0001
@@ -127,7 +137,7 @@ the real current 3mm package validator. Store does not copy the validator.
 
 Before S1.1 is accepted on Raspberry:
 
-1. build `0.1.0-dev.1`;
+1. build `0.1.0-dev.2`;
 2. validate the ZIP against current 3mm;
 3. upgrade the existing physical Store installation;
 4. confirm the same application instance and existing database are preserved;

@@ -17,3 +17,4 @@ All notable changes to 3mm Store will be documented here.
 - CI validation of the built Store ZIP against the current 3mm package contract.
 - Cross-platform byte-identical package archives independent of checkout line endings and zlib implementation.
 - GitHub Release workflow that publishes versioned Store ZIP and SHA256SUMS from explicit version tags.
+- S1.1 compiled UI now resolves the 3mm backend through runtime configuration, follows the host BG/EN language event, and uses platform theme tokens in light and dark themes.

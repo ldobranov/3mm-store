@@ -199,6 +199,8 @@ class PackageBuildTests(unittest.TestCase):
         self.assertIn("source/frontend/Catalog.vue", names)
         self.assertIn("source/frontend/Inventory.vue", names)
         self.assertIn("source/frontend/Settings.vue", names)
+        self.assertIn("source/frontend/application-api.ts", names)
+        self.assertIn("source/frontend/language.ts", names)
         self.assertTrue(
             any(
                 name.startswith("service/three_mm_store-")
