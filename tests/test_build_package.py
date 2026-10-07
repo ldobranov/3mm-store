@@ -152,6 +152,10 @@ class PackageBuildTests(unittest.TestCase):
                 )
                 self.assertNotIn("required_permission", operation)
                 continue
+            if operation["operation_id"] == "render_public":
+                self.assertEqual(operation["audiences"], ["public"])
+                self.assertNotIn("required_permission", operation)
+                continue
 
             self.assertIn("operator", operation["audiences"])
             self.assertIn("administrator", operation["audiences"])
