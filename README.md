@@ -29,6 +29,7 @@ The authoritative Store architecture and delivery plan is:
 
 - [Store Application Extension Development Guide](docs/STORE_EXTENSION_GUIDE.md)
 - [S0 Generic Platform Gap Audit](docs/S0_GAP_AUDIT.md)
+- [S0.1 Catalog Contract](docs/S0_CATALOG_CONTRACT.md)
 
 3mm Store targets:
 

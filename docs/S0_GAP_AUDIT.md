@@ -41,13 +41,15 @@ Store is designed against the current 3mm platform after Milestone 19:
 | G1 | Public mutation ingress | **Open / likely platform gap** | Define how a browser on the isolated public origin invokes only declared public Application Extension commands without exposing the whole Core/Admin API. |
 | G2 | Guest/public sessions | **Open** | Decide whether opaque Store-issued bearer cart tokens are sufficient for S2. If HttpOnly/SameSite sessions are required, define a generic public-session contract. |
 | G3 | Anonymous abuse protection | **Open** | Decide whether ingress-level limits are sufficient for login/checkout/public commands or whether a generic public-operation rate-limit contract is required. |
-| G4 | Product media | **Open** | Verify administrator upload, derivative generation, backup/restore and M19 serving limits. If insufficient, define a generic extension-media capability rather than Store endpoints in Core. |
+| G4 | Product media | **Confirmed generic gap candidate** | S0.1 confirmed the 1 MiB Application RPC / 512 KiB M19 bounds and no generic Application Extension multipart/media-upload contract. Catalog work proceeds without a Store-specific workaround; design a reusable extension-media capability separately. |
 | G5 | Public Internet ingress | **Open, not required for S1 local acceptance** | Define trusted reverse-proxy/origin/TLS binding before calling the Store Internet-production-ready. M19 itself proves only the isolated local public surface. |
 | G6 | Store business settings | **No Core gap expected** | Keep Store name, public base URL, tax/display policy and similar settings in Store-owned state, managed by declared admin operations. Use manifest configuration only for platform-owned bindings. |
-| G7 | Catalog/admin CRUD | **No Core gap expected** | Prove catalog operations and compiled management UI work through Application Extension v1 without Core changes. |
-| G8 | Public catalog rendering | **No Core gap expected** | Prove home/category/product pages, redirects and discovery resources work entirely through M19 GET/HEAD routes. |
+| G7 | Catalog/admin CRUD | **S0.1 closed — no Core gap** | The S1 schema, operations, permissions and compiled UI boundary are frozen in `S0_CATALOG_CONTRACT.md`. |
+| G8 | Public catalog rendering | **S0.1 closed — no Core gap** | Home/category/product pages and slug redirects fit M19 GET/HEAD routes through one exact v1 public render operation. |
 | G9 | Payment/shipping providers | **No Core gap expected initially** | Prove provider integration fits declared connector + secret boundaries. Provider semantics remain Store-owned. |
 | G10 | Personal-data lifecycle | **No Core gap expected** | Before S2 introduces customer/contact/address personal data, implement retention/export/erasure operations required by Application Extension v1. |
+
+See [S0.1 Catalog Contract](S0_CATALOG_CONTRACT.md) for the accepted S1 catalog boundary.
 
 ## Core-change gate
 
