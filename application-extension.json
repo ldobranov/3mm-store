@@ -1,9 +1,9 @@
 {
   "application_extension_version": 1,
   "module_id": "org.3mm.store",
-  "version": "0.1.0-dev.8",
+  "version": "0.1.0-dev.9",
   "service": {
-    "artifact": "service/three_mm_store-0.1.0.dev8-py3-none-any.whl",
+    "artifact": "service/three_mm_store-0.1.0.dev9-py3-none-any.whl",
     "artifact_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
     "entrypoint": "three_mm_store.service:create_service",
     "sdk_version": "1.3",
@@ -1670,6 +1670,113 @@
         ],
         "additionalProperties": false
       }
+    },
+    {
+      "operation_id": "render_public",
+      "kind": "query",
+      "audiences": [
+        "public"
+      ],
+      "idempotency": "forbidden",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "GET",
+              "HEAD"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "path_params": {
+            "type": "object"
+          },
+          "query": {
+            "type": "object"
+          },
+          "headers": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "method",
+          "path",
+          "path_params",
+          "query",
+          "headers"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "integer",
+            "enum": [
+              200,
+              204,
+              304,
+              301,
+              302,
+              307,
+              308,
+              400,
+              403,
+              404,
+              405,
+              410,
+              429,
+              500,
+              503
+            ]
+          },
+          "content_type": {
+            "type": "string",
+            "enum": [
+              "text/html; charset=utf-8",
+              "text/plain; charset=utf-8",
+              "text/css; charset=utf-8",
+              "application/javascript; charset=utf-8",
+              "application/json",
+              "application/manifest+json",
+              "application/xml",
+              "text/xml; charset=utf-8",
+              "application/rss+xml",
+              "application/atom+xml",
+              "image/png",
+              "image/jpeg",
+              "image/webp",
+              "image/avif",
+              "image/gif",
+              "image/svg+xml",
+              "image/x-icon",
+              "font/woff",
+              "font/woff2",
+              "application/pdf"
+            ]
+          },
+          "headers": {
+            "type": "object"
+          },
+          "body": {
+            "type": "string"
+          },
+          "body_base64": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "headers"
+        ],
+        "additionalProperties": false
+      }
     }
   ],
   "routes": [
@@ -1705,7 +1812,44 @@
       "order": 30
     }
   ],
-  "public_http_routes": [],
+  "public_http_routes": [
+    {
+      "route_id": "home",
+      "path": "/",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "handler_operation_id": "render_public",
+      "content_types": [
+        "text/html; charset=utf-8"
+      ]
+    },
+    {
+      "route_id": "product",
+      "path": "/products/{slug}",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "handler_operation_id": "render_public",
+      "content_types": [
+        "text/html; charset=utf-8"
+      ]
+    },
+    {
+      "route_id": "category",
+      "path": "/categories/{slug}",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "handler_operation_id": "render_public",
+      "content_types": [
+        "text/html; charset=utf-8"
+      ]
+    }
+  ],
   "event_subscriptions": [],
   "connectors": [],
   "jobs": [],

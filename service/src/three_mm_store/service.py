@@ -8,6 +8,7 @@ from .categories import CategoryService
 from .products import ProductService
 from .inventory import InventoryService
 from .settings import StoreSettingsService
+from .public_catalog import PublicCatalogRenderer
 
 
 class StoreService:
@@ -17,6 +18,7 @@ class StoreService:
         self.products = ProductService(context)
         self.inventory = InventoryService(context)
         self.settings = StoreSettingsService(context)
+        self.public_catalog = PublicCatalogRenderer(context)
 
     def handle(
         self,
@@ -42,6 +44,7 @@ class StoreService:
             "inventory_adjust": self.inventory.adjust,
             "store_settings_get": self.settings.get_settings,
             "store_settings_update": self.settings.update,
+            "render_public": self.public_catalog.render,
         }
         handler = handlers.get(operation_id)
         if handler is None:

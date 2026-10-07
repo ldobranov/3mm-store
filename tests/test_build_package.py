@@ -123,6 +123,7 @@ class PackageBuildTests(unittest.TestCase):
                 "inventory_adjust",
                 "store_settings_get",
                 "store_settings_update",
+                "render_public",
             ],
         )
 
@@ -175,6 +176,18 @@ class PackageBuildTests(unittest.TestCase):
         self.assertFalse(
             application["storage"]["contains_personal_data"]
         )
+        self.assertEqual(
+            [route["path"] for route in application["public_http_routes"]],
+            ["/", "/products/{slug}", "/categories/{slug}"],
+        )
+        public = next(
+            operation
+            for operation in application["operations"]
+            if operation["operation_id"] == "render_public"
+        )
+        self.assertEqual(public["audiences"], ["public"])
+        self.assertEqual(public["kind"], "query")
+        self.assertEqual(public["idempotency"], "forbidden")
 
     def test_zip_metadata_is_platform_neutral(self) -> None:
         payload = build_package()

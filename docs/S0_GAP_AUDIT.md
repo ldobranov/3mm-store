@@ -45,7 +45,7 @@ Store is designed against the current 3mm platform after Milestone 19:
 | G5 | Public Internet ingress | **Open, not required for S1 local acceptance** | Define trusted reverse-proxy/origin/TLS binding before calling the Store Internet-production-ready. M19 itself proves only the isolated local public surface. |
 | G6 | Store business settings | **No Core gap expected** | Keep Store name, public base URL, tax/display policy and similar settings in Store-owned state, managed by declared admin operations. Use manifest configuration only for platform-owned bindings. |
 | G7 | Catalog/admin CRUD | **S0.1 closed — no Core gap** | The S1 schema, operations, permissions and compiled UI boundary are frozen in `S0_CATALOG_CONTRACT.md`. |
-| G8 | Public catalog rendering | **S0.1 closed — no Core gap** | Home/category/product pages and slug redirects fit M19 GET/HEAD routes through one exact v1 public render operation. |
+| G8 | Public catalog rendering | **S1.5 implemented — no Core gap** | Home/category/product pages and slug redirects use M19 GET/HEAD routes through one exact v1 public render operation. |
 | G9 | Payment/shipping providers | **No Core gap expected initially** | Prove provider integration fits declared connector + secret boundaries. Provider semantics remain Store-owned. |
 | G10 | Personal-data lifecycle | **No Core gap expected** | Before S2 introduces customer/contact/address personal data, implement retention/export/erasure operations required by Application Extension v1. |
 

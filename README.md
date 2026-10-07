@@ -9,7 +9,7 @@ contracts and tests.
 
 ## Status
 
-**S1.4 — Store settings**
+**S1.5 — Public catalog rendering**
 
 Module identity:
 
@@ -20,7 +20,7 @@ org.3mm.store
 Current work happens on:
 
 ```text
-s1/settings
+s1/public-catalog
 ```
 
 ## Architecture
@@ -37,6 +37,7 @@ The authoritative Store architecture and delivery plan is:
 - [S1.2 Products](docs/S1_2_PRODUCTS.md)
 - [S1.3 Inventory](docs/S1_3_INVENTORY.md)
 - [S1.4 Store Settings](docs/S1_4_SETTINGS.md)
+- [S1.5 Public Catalog Rendering](docs/S1_5_PUBLIC_CATALOG.md)
 - [Releasing 3mm Store](docs/RELEASING.md)
 
 3mm Store targets:
