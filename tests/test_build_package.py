@@ -134,6 +134,36 @@ class PackageBuildTests(unittest.TestCase):
             application["storage"]["contains_personal_data"]
         )
 
+    def test_zip_metadata_is_platform_neutral(self) -> None:
+        payload = build_package()
+
+        with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+            entries = archive.infolist()
+            self.assertTrue(entries)
+            for item in entries:
+                self.assertEqual(item.create_system, 3)
+                self.assertEqual(item.create_version, 20)
+                self.assertEqual(item.extract_version, 20)
+                self.assertEqual(item.compress_type, zipfile.ZIP_STORED)
+                self.assertEqual(item.extra, b"")
+                self.assertEqual(item.comment, b"")
+
+            application = json.loads(
+                archive.read("application-extension.json")
+            )
+            wheel = archive.read(application["service"]["artifact"])
+
+        with zipfile.ZipFile(io.BytesIO(wheel)) as archive:
+            entries = archive.infolist()
+            self.assertTrue(entries)
+            for item in entries:
+                self.assertEqual(item.create_system, 3)
+                self.assertEqual(item.create_version, 20)
+                self.assertEqual(item.extract_version, 20)
+                self.assertEqual(item.compress_type, zipfile.ZIP_STORED)
+                self.assertEqual(item.extra, b"")
+                self.assertEqual(item.comment, b"")
+
     def test_archives_use_stored_entries_for_cross_platform_identity(self) -> None:
         payload = build_package()
         with zipfile.ZipFile(io.BytesIO(payload)) as archive:

@@ -46,10 +46,18 @@ def wheel_name(version: str) -> str:
 
 def _write(archive: zipfile.ZipFile, name: str, payload: bytes) -> None:
     info = zipfile.ZipInfo(name, FIXED_TIME)
-    # Stored entries avoid zlib-version/platform differences in compressed bytes.
-    # Package size is small; cross-platform byte identity is more valuable here.
+    # Freeze every platform-sensitive ZIP header field. In particular,
+    # ZipInfo.create_system defaults to DOS on Windows and Unix on Linux, which
+    # changes archive bytes even when every payload byte is identical.
+    info.create_system = 3
+    info.create_version = 20
+    info.extract_version = 20
+    info.flag_bits = 0
     info.compress_type = zipfile.ZIP_STORED
     info.external_attr = 0o100644 << 16
+    info.internal_attr = 0
+    info.extra = b""
+    info.comment = b""
     archive.writestr(info, payload)
 
 
