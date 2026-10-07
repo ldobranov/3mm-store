@@ -30,23 +30,31 @@ class PackageBuildTests(unittest.TestCase):
             ):
                 shutil.copy2(package_builder.ROOT / name, root / name)
 
-            for relative in (
-                Path("service/src/three_mm_store"),
-                Path("source/frontend"),
-            ):
-                target = root / relative
-                target.mkdir(parents=True, exist_ok=True)
-                for source in (package_builder.ROOT / relative).rglob("*"):
-                    if not source.is_file():
-                        continue
-                    destination = target / source.relative_to(
-                        package_builder.ROOT / relative
-                    )
-                    destination.parent.mkdir(parents=True, exist_ok=True)
-                    text = source.read_text(encoding="utf-8")
-                    destination.write_bytes(
-                        text.replace("\n", "\r\n").encode("utf-8")
-                    )
+            service_source = (
+                package_builder.ROOT / "service/src/three_mm_store"
+            )
+            service_target = root / "service/src/three_mm_store"
+            service_target.mkdir(parents=True, exist_ok=True)
+            for source in sorted(service_source.glob("*.py")):
+                text = source.read_text(encoding="utf-8")
+                (service_target / source.name).write_bytes(
+                    text.replace("\n", "\r\n").encode("utf-8")
+                )
+
+            frontend_source = package_builder.ROOT / "source/frontend"
+            frontend_target = root / "source/frontend"
+            frontend_target.mkdir(parents=True, exist_ok=True)
+            for source in sorted(frontend_source.rglob("*")):
+                if not source.is_file():
+                    continue
+                destination = frontend_target / source.relative_to(
+                    frontend_source
+                )
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                text = source.read_text(encoding="utf-8")
+                destination.write_bytes(
+                    text.replace("\n", "\r\n").encode("utf-8")
+                )
 
             original_root = package_builder.ROOT
             package_builder.ROOT = root
