@@ -6,8 +6,8 @@
         <p>
           {{
             t(
-              'Управление на категориите. Продуктите идват в следващата стъпка на S1.',
-              'Manage Store categories. Products arrive in the next S1 increment.',
+              'Категориите се редактират отделно за всеки инсталиран език.',
+              'Categories are edited separately for every installed language.',
             )
           }}
         </p>
@@ -18,6 +18,22 @@
     </header>
 
     <section class="panel filters">
+      <label>
+        <span>{{ t('Език на съдържанието', 'Content language') }}</span>
+        <select
+          v-model="contentLanguage"
+          @change="changeListLanguage"
+        >
+          <option
+            v-for="code in installedLanguages"
+            :key="code"
+            :value="code"
+          >
+            {{ code.toUpperCase() }}
+          </option>
+        </select>
+      </label>
+
       <label>
         <span>{{ t('Търсене', 'Search') }}</span>
         <input
@@ -47,21 +63,65 @@
 
     <section v-if="editing" class="panel editor">
       <div class="section-header">
-        <h2>
-          {{
-            form.category_id
-              ? t('Редакция на категория', 'Edit category')
-              : t('Нова категория', 'New category')
-          }}
-        </h2>
+        <div>
+          <h2>
+            {{
+              form.category_id
+                ? t('Редакция на категория', 'Edit category')
+                : t('Нова категория', 'New category')
+            }}
+          </h2>
+          <p class="section-help">
+            {{
+              t(
+                'Slug, родител и ред са общи. Името, описанията и SEO текстовете са по език.',
+                'Slug, parent and order are shared. Names, descriptions and SEO text are language-specific.',
+              )
+            }}
+          </p>
+        </div>
         <button type="button" class="secondary" @click="cancelEdit">
           {{ t('Затвори', 'Close') }}
         </button>
       </div>
 
+      <div class="language-tabs" role="tablist">
+        <button
+          v-for="code in installedLanguages"
+          :key="code"
+          type="button"
+          class="language-tab"
+          :class="{ active: code === contentLanguage }"
+          @click="switchEditorLanguage(code)"
+        >
+          {{ code.toUpperCase() }}
+          <span v-if="hasStoredTranslation(code)" aria-hidden="true">✓</span>
+          <span
+            v-else-if="code === legacySeedLanguage"
+            aria-hidden="true"
+          >~</span>
+        </button>
+      </div>
+
+      <p
+        v-if="
+          form.category_id &&
+          !hasStoredTranslation(contentLanguage) &&
+          contentLanguage === legacySeedLanguage
+        "
+        class="legacy-note"
+      >
+        {{
+          t(
+            'Този текст е от стария едноезичен запис. Записването ще го потвърди за избрания език.',
+            'This text comes from the legacy single-language record. Saving will assign it to the selected language.',
+          )
+        }}
+      </p>
+
       <div class="form-grid">
         <label>
-          <span>{{ t('Име', 'Name') }}</span>
+          <span>{{ t('Име', 'Name') }} · {{ contentLanguage.toUpperCase() }}</span>
           <input v-model.trim="form.name" maxlength="160" />
         </label>
 
@@ -106,11 +166,34 @@
         </label>
 
         <label class="wide">
-          <span>{{ t('Описание', 'Description') }}</span>
+          <span>
+            {{ t('Описание', 'Description') }}
+            · {{ contentLanguage.toUpperCase() }}
+          </span>
           <textarea
             v-model.trim="form.description"
-            rows="4"
+            rows="5"
             maxlength="5000"
+          />
+        </label>
+
+        <label>
+          <span>
+            {{ t('SEO заглавие', 'SEO title') }}
+            · {{ contentLanguage.toUpperCase() }}
+          </span>
+          <input v-model.trim="form.meta_title" maxlength="160" />
+        </label>
+
+        <label>
+          <span>
+            {{ t('SEO описание', 'SEO description') }}
+            · {{ contentLanguage.toUpperCase() }}
+          </span>
+          <textarea
+            v-model.trim="form.meta_description"
+            rows="3"
+            maxlength="320"
           />
         </label>
       </div>
@@ -120,7 +203,7 @@
           {{
             saving
               ? t('Записване…', 'Saving…')
-              : t('Запази категорията', 'Save category')
+              : t('Запази езика и категорията', 'Save language and category')
           }}
         </button>
         <button type="button" class="secondary" @click="cancelEdit">
@@ -135,6 +218,7 @@
         <span>
           {{ total }}
           {{ t('общо', 'total') }}
+          · {{ contentLanguage.toUpperCase() }}
         </span>
       </div>
 
@@ -227,6 +311,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import {
   createRequestId,
   invokeApplicationOperation,
+  readInstalledLanguages,
 } from './application-api'
 import { useStoreLanguage } from './language'
 
@@ -244,6 +329,16 @@ interface Category {
   updated_at: string
 }
 
+interface CategoryTranslation {
+  language_code: string
+  name: string
+  description: string
+  meta_title: string
+  meta_description: string
+  created_at: string
+  updated_at: string
+}
+
 interface CategoryList {
   items: Category[]
   total: number
@@ -251,10 +346,22 @@ interface CategoryList {
   offset: number
 }
 
-const { t } = useStoreLanguage()
+interface CategoryDetail {
+  category: Category
+  legacy_language_code: string | null
+  translations: CategoryTranslation[]
+}
+
+const { language: uiLanguage, t } = useStoreLanguage()
 
 const categories = ref<Category[]>([])
 const allCategories = ref<Category[]>([])
+const installedLanguages = ref<string[]>(['en'])
+const contentLanguage = ref('en')
+const translations = ref<Record<string, CategoryTranslation>>({})
+const legacyCategory = ref<Category | null>(null)
+const legacySeedLanguage = ref<string | null>(null)
+
 const total = ref(0)
 const limit = 20
 const offset = ref(0)
@@ -271,6 +378,8 @@ const form = reactive({
   name: '',
   slug: '',
   description: '',
+  meta_title: '',
+  meta_description: '',
   parent_id: '',
   sort_order: 0,
 })
@@ -306,6 +415,57 @@ async function operation<T>(
   )
 }
 
+function clearLocalizedForm() {
+  form.name = ''
+  form.description = ''
+  form.meta_title = ''
+  form.meta_description = ''
+}
+
+function applyLanguageToForm(code: string) {
+  const stored = translations.value[code]
+  if (stored) {
+    form.name = stored.name
+    form.description = stored.description
+    form.meta_title = stored.meta_title
+    form.meta_description = stored.meta_description
+    return
+  }
+
+  if (
+    code === legacySeedLanguage.value &&
+    legacyCategory.value
+  ) {
+    form.name = legacyCategory.value.name
+    form.description = legacyCategory.value.description
+    form.meta_title = ''
+    form.meta_description = ''
+    return
+  }
+
+  clearLocalizedForm()
+}
+
+function hasStoredTranslation(code: string): boolean {
+  return Boolean(translations.value[code])
+}
+
+async function loadInstalledLanguages() {
+  try {
+    installedLanguages.value = await readInstalledLanguages(token())
+  } catch {
+    installedLanguages.value = Array.from(
+      new Set([uiLanguage.value, 'en']),
+    )
+  }
+
+  if (!installedLanguages.value.includes(contentLanguage.value)) {
+    contentLanguage.value = installedLanguages.value.includes(uiLanguage.value)
+      ? uiLanguage.value
+      : installedLanguages.value[0] || 'en'
+  }
+}
+
 async function loadAllCategories() {
   const collected: Category[] = []
   let cursor = 0
@@ -314,7 +474,11 @@ async function loadAllCategories() {
   do {
     const result = await operation<CategoryList>(
       'catalog_list_categories',
-      { limit: 100, offset: cursor },
+      {
+        language_code: contentLanguage.value,
+        limit: 100,
+        offset: cursor,
+      },
     )
     collected.push(...result.items)
     expected = result.total
@@ -330,6 +494,7 @@ async function loadCategories() {
   error.value = ''
   try {
     const payload: Record<string, unknown> = {
+      language_code: contentLanguage.value,
       limit,
       offset: offset.value,
     }
@@ -356,6 +521,32 @@ async function loadCategories() {
   }
 }
 
+async function loadCategoryDetail(categoryId: string) {
+  const detail = await operation<CategoryDetail>(
+    'catalog_get_category',
+    { category_id: categoryId },
+  )
+
+  translations.value = Object.fromEntries(
+    detail.translations.map((translation) => [
+      translation.language_code,
+      translation,
+    ]),
+  )
+  legacyCategory.value = detail.category
+  legacySeedLanguage.value =
+    detail.legacy_language_code ||
+    (detail.translations.length === 0
+      ? contentLanguage.value
+      : null)
+
+  form.category_id = detail.category.category_id
+  form.slug = detail.category.slug
+  form.parent_id = detail.category.parent_id || ''
+  form.sort_order = detail.category.sort_order
+  applyLanguageToForm(contentLanguage.value)
+}
+
 function clearNotice() {
   error.value = ''
   message.value = ''
@@ -364,27 +555,51 @@ function clearNotice() {
 function startCreate() {
   clearNotice()
   form.category_id = ''
-  form.name = ''
   form.slug = ''
-  form.description = ''
   form.parent_id = ''
   form.sort_order = 0
+  translations.value = {}
+  legacyCategory.value = null
+  legacySeedLanguage.value = null
+  clearLocalizedForm()
   editing.value = true
 }
 
-function startEdit(category: Category) {
+async function startEdit(category: Category) {
   clearNotice()
-  form.category_id = category.category_id
-  form.name = category.name
-  form.slug = category.slug
-  form.description = category.description
-  form.parent_id = category.parent_id || ''
-  form.sort_order = category.sort_order
   editing.value = true
+  saving.value = true
+  try {
+    await loadCategoryDetail(category.category_id)
+  } catch (reason) {
+    editing.value = false
+    error.value =
+      reason instanceof Error
+        ? reason.message
+        : t(
+            'Категорията не може да бъде заредена.',
+            'Could not load category.',
+          )
+  } finally {
+    saving.value = false
+  }
 }
 
 function cancelEdit() {
   editing.value = false
+}
+
+function switchEditorLanguage(code: string) {
+  contentLanguage.value = code
+  applyLanguageToForm(code)
+}
+
+async function changeListLanguage() {
+  if (editing.value) {
+    applyLanguageToForm(contentLanguage.value)
+  }
+  offset.value = 0
+  await Promise.all([loadCategories(), loadAllCategories()])
 }
 
 async function saveCategory() {
@@ -399,12 +614,19 @@ async function saveCategory() {
 
   saving.value = true
   try {
-    const payload: Record<string, unknown> = {
+    const content = {
+      language_code: contentLanguage.value,
       name: form.name,
-      slug: form.slug,
       description: form.description,
+      meta_title: form.meta_title,
+      meta_description: form.meta_description,
+    }
+
+    const payload: Record<string, unknown> = {
+      slug: form.slug,
       parent_id: form.parent_id || null,
       sort_order: Number(form.sort_order),
+      content,
     }
 
     let operationId = 'category_create'
@@ -413,16 +635,20 @@ async function saveCategory() {
       payload.category_id = form.category_id
     }
 
-    await operation(
+    const result = await operation<{ category: Category }>(
       operationId,
       payload,
       createRequestId(),
     )
 
+    const categoryId =
+      form.category_id || result.category.category_id
+
     message.value = form.category_id
       ? t('Категорията е обновена.', 'Category updated.')
       : t('Категорията е създадена.', 'Category created.')
-    editing.value = false
+
+    await loadCategoryDetail(categoryId)
     await Promise.all([loadCategories(), loadAllCategories()])
   } catch (reason) {
     error.value =
@@ -503,6 +729,8 @@ async function nextPage() {
 }
 
 onMounted(async () => {
+  contentLanguage.value = uiLanguage.value
+  await loadInstalledLanguages()
   await Promise.all([loadCategories(), loadAllCategories()])
 })
 </script>
@@ -519,7 +747,8 @@ onMounted(async () => {
 
 .store-page p,
 .store-page .section-header > span,
-.store-page .pager {
+.store-page .pager,
+.section-help {
   color: var(--text-secondary);
 }
 
@@ -596,19 +825,46 @@ button:hover:not(:disabled) {
   background: var(--button-primary-hover);
 }
 
-button.secondary {
+button.secondary,
+.language-tab {
   background: var(--card-bg);
   color: var(--text-primary);
   border-color: var(--card-border);
 }
 
-button.secondary:hover:not(:disabled) {
+button.secondary:hover:not(:disabled),
+.language-tab:hover:not(:disabled) {
   background: var(--panel-bg);
 }
 
 button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.language-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.language-tab {
+  min-width: 4.5rem;
+}
+
+.language-tab.active {
+  background: var(--button-primary-bg);
+  color: var(--button-primary-text);
+  border-color: var(--button-primary-bg);
+}
+
+.legacy-note {
+  margin: 0 0 1rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--card-border);
+  border-radius: var(--border-radius-sm);
+  background: var(--panel-bg);
 }
 
 .form-grid {

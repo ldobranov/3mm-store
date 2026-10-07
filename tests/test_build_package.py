@@ -110,6 +110,7 @@ class PackageBuildTests(unittest.TestCase):
             [
                 "health",
                 "catalog_list_categories",
+                "catalog_get_category",
                 "category_create",
                 "category_update",
                 "category_set_status",
@@ -128,7 +129,7 @@ class PackageBuildTests(unittest.TestCase):
         )
         self.assertEqual(
             application["storage"]["schema_revision"],
-            "0001",
+            "0002",
         )
         self.assertFalse(
             application["storage"]["contains_personal_data"]

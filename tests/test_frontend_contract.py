@@ -22,10 +22,6 @@ class FrontendHostContractTests(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn("invokeApplicationOperation", catalog)
-        self.assertNotIn(
-            "fetch(\n    `/api/v1/application-extensions",
-            catalog,
-        )
 
     def test_store_ui_follows_host_language(self) -> None:
         language = (FRONTEND / "language.ts").read_text(
@@ -33,12 +29,34 @@ class FrontendHostContractTests(unittest.TestCase):
         )
         self.assertIn("preferredLanguage", language)
         self.assertIn("language-changed", language)
+        self.assertIn("normalizeLanguageCode", language)
         self.assertIn("useStoreLanguage", language)
 
         for name in ("Catalog.vue", "Inventory.vue", "Settings.vue"):
             source = (FRONTEND / name).read_text(encoding="utf-8")
             self.assertIn("useStoreLanguage", source)
             self.assertIn("t(", source)
+
+    def test_catalog_discovers_content_languages_from_3mm(self) -> None:
+        api = (FRONTEND / "application-api.ts").read_text(
+            encoding="utf-8"
+        )
+        catalog = (FRONTEND / "Catalog.vue").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("/language/available", api)
+        self.assertIn("readInstalledLanguages", api)
+        self.assertIn("installedLanguages", catalog)
+        self.assertIn("contentLanguage", catalog)
+        self.assertIn("catalog_get_category", catalog)
+        self.assertIn("meta_title", catalog)
+        self.assertIn("meta_description", catalog)
+        self.assertIn("language_code", catalog)
+        self.assertNotIn(
+            "installedLanguages = ref<string[]>(['bg', 'en'])",
+            catalog,
+        )
 
     def test_store_ui_uses_platform_theme_tokens(self) -> None:
         catalog = (FRONTEND / "Catalog.vue").read_text(

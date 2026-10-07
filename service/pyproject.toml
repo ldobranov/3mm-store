@@ -1,6 +1,6 @@
 [project]
 name = "three-mm-store"
-version = "0.1.0.dev2"
+version = "0.1.0.dev3"
 description = "3mm Store Application Extension service"
 requires-python = ">=3.12"
 dependencies = []

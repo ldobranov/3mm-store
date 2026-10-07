@@ -1,4 +1,7 @@
-import { getStoreLanguage } from './language'
+import {
+  getStoreLanguage,
+  normalizeLanguageCode,
+} from './language'
 
 const MODULE_ID = 'org.3mm.store'
 
@@ -87,6 +90,30 @@ function responseMessage(status: number | 'configuration'): string {
       : 'The service is temporarily unavailable.'
   }
   return bg ? 'Операцията не беше изпълнена.' : 'The operation failed.'
+}
+
+export async function readInstalledLanguages(
+  token: string,
+): Promise<string[]> {
+  const backendBase = await getBackendBase()
+  const response = await fetch(`${backendBase}/language/available`, {
+    headers: token
+      ? { Authorization: `Bearer ${token}` }
+      : undefined,
+  })
+
+  if (!response.ok) {
+    throw new Error(responseMessage(response.status))
+  }
+
+  const body = (await response.json()) as { languages?: unknown }
+  const values = Array.isArray(body.languages) ? body.languages : []
+  const languages = values
+    .filter((value): value is string => typeof value === 'string')
+    .map(normalizeLanguageCode)
+
+  if (!languages.includes('en')) languages.unshift('en')
+  return Array.from(new Set(languages))
 }
 
 export function createRequestId(): string {

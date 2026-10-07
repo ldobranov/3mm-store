@@ -1,4 +1,4 @@
-"""Store-owned category domain and operations."""
+"""Store-owned category domain and localized content operations."""
 
 from __future__ import annotations
 
@@ -10,9 +10,14 @@ from .idempotency import run_idempotent
 
 CATEGORY_ID = re.compile(r"^cat_[0-9a-f]{32}$")
 SLUG = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+LANGUAGE_CODE = re.compile(
+    r"^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$"
+)
 
 MAX_NAME = 160
 MAX_DESCRIPTION = 5000
+MAX_META_TITLE = 160
+MAX_META_DESCRIPTION = 320
 MAX_SLUG = 120
 MAX_SEARCH = 120
 MAX_SORT_ORDER = 100_000
@@ -57,6 +62,60 @@ class CategoryService:
             )
         return slug
 
+    @classmethod
+    def _language_code(cls, value: object) -> str:
+        code = cls._text(
+            value,
+            "Language code",
+            maximum=35,
+        ).lower()
+        if LANGUAGE_CODE.fullmatch(code) is None:
+            raise ValueError("Language code is invalid")
+        return code
+
+    @classmethod
+    def _content(cls, value: object) -> dict[str, str]:
+        if not isinstance(value, dict):
+            raise ValueError("Category content is required")
+        cls._known_fields(
+            value,
+            {
+                "language_code",
+                "name",
+                "description",
+                "meta_title",
+                "meta_description",
+            },
+        )
+        return {
+            "language_code": cls._language_code(
+                value.get("language_code")
+            ),
+            "name": cls._text(
+                value.get("name"),
+                "Category name",
+                maximum=MAX_NAME,
+            ),
+            "description": cls._text(
+                value.get("description", ""),
+                "Category description",
+                maximum=MAX_DESCRIPTION,
+                allow_empty=True,
+            ),
+            "meta_title": cls._text(
+                value.get("meta_title", ""),
+                "Category meta title",
+                maximum=MAX_META_TITLE,
+                allow_empty=True,
+            ),
+            "meta_description": cls._text(
+                value.get("meta_description", ""),
+                "Category meta description",
+                maximum=MAX_META_DESCRIPTION,
+                allow_empty=True,
+            ),
+        }
+
     @staticmethod
     def _category_id(value: object, *, nullable: bool = False) -> str | None:
         if value is None and nullable:
@@ -94,11 +153,23 @@ class CategoryService:
         }
 
     @staticmethod
+    def _translation_to_dict(row) -> dict[str, object]:
+        return {
+            "language_code": str(row["language_code"]),
+            "name": str(row["name"]),
+            "description": str(row["description"]),
+            "meta_title": str(row["meta_title"]),
+            "meta_description": str(row["meta_description"]),
+            "created_at": str(row["created_at"]),
+            "updated_at": str(row["updated_at"]),
+        }
+
+    @staticmethod
     def _load(connection, category_id: str):
         row = connection.execute(
             """
             SELECT id, slug, name, description, parent_id, sort_order,
-                   status, created_at, updated_at
+                   status, created_at, updated_at, legacy_language_code
             FROM categories
             WHERE id = ?
             """,
@@ -107,6 +178,89 @@ class CategoryService:
         if row is None:
             raise ValueError("Category was not found")
         return row
+
+    @classmethod
+    def _load_localized(
+        cls,
+        connection,
+        category_id: str,
+        language_code: str,
+    ):
+        row = connection.execute(
+            """
+            SELECT
+                c.id,
+                c.slug,
+                COALESCE(t.name, c.name) AS name,
+                COALESCE(t.description, c.description) AS description,
+                c.parent_id,
+                c.sort_order,
+                c.status,
+                c.created_at,
+                c.updated_at
+            FROM categories c
+            LEFT JOIN category_translations t
+              ON t.category_id = c.id
+             AND t.language_code = ?
+            WHERE c.id = ?
+            """,
+            (language_code, category_id),
+        ).fetchone()
+        if row is None:
+            raise ValueError("Category was not found")
+        return row
+
+    @staticmethod
+    def _translation_rows(connection, category_id: str):
+        return connection.execute(
+            """
+            SELECT language_code, name, description, meta_title,
+                   meta_description, created_at, updated_at
+            FROM category_translations
+            WHERE category_id = ?
+            ORDER BY language_code
+            """,
+            (category_id,),
+        ).fetchall()
+
+    @staticmethod
+    def _upsert_translation(
+        connection,
+        category_id: str,
+        content: dict[str, str],
+        now: str,
+    ) -> None:
+        connection.execute(
+            """
+            INSERT INTO category_translations(
+                category_id,
+                language_code,
+                name,
+                description,
+                meta_title,
+                meta_description,
+                created_at,
+                updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(category_id, language_code)
+            DO UPDATE SET
+                name = excluded.name,
+                description = excluded.description,
+                meta_title = excluded.meta_title,
+                meta_description = excluded.meta_description,
+                updated_at = excluded.updated_at
+            """,
+            (
+                category_id,
+                content["language_code"],
+                content["name"],
+                content["description"],
+                content["meta_title"],
+                content["meta_description"],
+                now,
+                now,
+            ),
+        )
 
     @staticmethod
     def _assert_slug_available(
@@ -177,12 +331,17 @@ class CategoryService:
     ) -> dict[str, object]:
         self._known_fields(
             payload,
-            {"search", "status", "limit", "offset"},
+            {
+                "search",
+                "status",
+                "limit",
+                "offset",
+                "language_code",
+            },
         )
 
-        search_value = payload.get("search", "")
         search = self._text(
-            search_value,
+            payload.get("search", ""),
             "Category search",
             maximum=MAX_SEARCH,
             allow_empty=True,
@@ -190,6 +349,12 @@ class CategoryService:
         status = payload.get("status")
         if status is not None and status not in {"active", "archived"}:
             raise ValueError("Category status filter is invalid")
+
+        language_code = (
+            self._language_code(payload["language_code"])
+            if "language_code" in payload
+            else None
+        )
 
         limit_value = payload.get("limit", 20)
         offset_value = payload.get("offset", 0)
@@ -206,28 +371,58 @@ class CategoryService:
         ):
             raise ValueError("Category list offset is invalid")
 
-        where: list[str] = []
+        join_sql = ""
+        select_name = "c.name"
+        select_description = "c.description"
         parameters: list[object] = []
+        if language_code is not None:
+            join_sql = """
+                LEFT JOIN category_translations t
+                  ON t.category_id = c.id
+                 AND t.language_code = ?
+            """
+            select_name = "COALESCE(t.name, c.name)"
+            select_description = "COALESCE(t.description, c.description)"
+            parameters.append(language_code)
+
+        where: list[str] = []
+        where_parameters: list[object] = []
         if status is not None:
-            where.append("status = ?")
-            parameters.append(status)
+            where.append("c.status = ?")
+            where_parameters.append(status)
         if search:
             where.append(
-                "(store_casefold(name) LIKE ? OR store_casefold(slug) LIKE ?)"
+                f"(store_casefold({select_name}) LIKE ? "
+                "OR store_casefold(c.slug) LIKE ?)"
             )
             pattern = f"%{search.casefold()}%"
-            parameters.extend((pattern, pattern))
+            where_parameters.extend((pattern, pattern))
 
         where_sql = f" WHERE {' AND '.join(where)}" if where else ""
         select_sql = f"""
-            SELECT id, slug, name, description, parent_id, sort_order,
-                   status, created_at, updated_at
-            FROM categories
+            SELECT
+                c.id,
+                c.slug,
+                {select_name} AS name,
+                {select_description} AS description,
+                c.parent_id,
+                c.sort_order,
+                c.status,
+                c.created_at,
+                c.updated_at
+            FROM categories c
+            {join_sql}
             {where_sql}
-            ORDER BY sort_order, name, id
+            ORDER BY c.sort_order, {select_name}, c.id
             LIMIT ? OFFSET ?
         """
-        count_sql = f"SELECT COUNT(*) FROM categories{where_sql}"
+        count_sql = f"""
+            SELECT COUNT(*)
+            FROM categories c
+            {join_sql}
+            {where_sql}
+        """
+        query_parameters = [*parameters, *where_parameters]
 
         with self.application.storage.transaction() as connection:
             connection.create_function(
@@ -239,12 +434,16 @@ class CategoryService:
             total = int(
                 connection.execute(
                     count_sql,
-                    parameters,
+                    query_parameters,
                 ).fetchone()[0]
             )
             rows = connection.execute(
                 select_sql,
-                [*parameters, limit_value, offset_value],
+                [
+                    *query_parameters,
+                    limit_value,
+                    offset_value,
+                ],
             ).fetchall()
 
         return {
@@ -254,6 +453,33 @@ class CategoryService:
             "offset": offset_value,
         }
 
+    def get_category(
+        self,
+        payload: dict[str, object],
+        _context,
+    ) -> dict[str, object]:
+        self._known_fields(payload, {"category_id"})
+        category_id = self._category_id(payload.get("category_id"))
+
+        with self.application.storage.transaction() as connection:
+            current = self._load(connection, category_id)
+            translations = self._translation_rows(
+                connection,
+                category_id,
+            )
+            return {
+                "category": self._row_to_category(current),
+                "legacy_language_code": (
+                    str(current["legacy_language_code"])
+                    if current["legacy_language_code"] is not None
+                    else None
+                ),
+                "translations": [
+                    self._translation_to_dict(row)
+                    for row in translations
+                ],
+            }
+
     def create(
         self,
         payload: dict[str, object],
@@ -261,32 +487,26 @@ class CategoryService:
     ) -> dict[str, object]:
         self._known_fields(
             payload,
-            {"name", "slug", "description", "parent_id", "sort_order"},
-        )
-        name = self._text(
-            payload.get("name"),
-            "Category name",
-            maximum=MAX_NAME,
+            {
+                "slug",
+                "parent_id",
+                "sort_order",
+                "content",
+            },
         )
         slug = self._slug(payload.get("slug"))
-        description = self._text(
-            payload.get("description", ""),
-            "Category description",
-            maximum=MAX_DESCRIPTION,
-            allow_empty=True,
-        )
+        content = self._content(payload.get("content"))
         parent_id = self._category_id(
             payload.get("parent_id"),
             nullable=True,
         )
         sort_order = self._sort_order(payload.get("sort_order", 0))
 
-        normalized_payload = {
-            "name": name,
+        normalized_payload: dict[str, object] = {
             "slug": slug,
-            "description": description,
             "parent_id": parent_id,
             "sort_order": sort_order,
+            "content": content,
         }
 
         def mutation(connection):
@@ -302,24 +522,43 @@ class CategoryService:
             connection.execute(
                 """
                 INSERT INTO categories(
-                    id, slug, name, description, parent_id, sort_order,
-                    status, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)
-                """,
-                (
-                    category_id,
+                    id,
                     slug,
                     name,
                     description,
                     parent_id,
                     sort_order,
+                    status,
+                    created_at,
+                    updated_at,
+                    legacy_language_code
+                ) VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)
+                """,
+                (
+                    category_id,
+                    slug,
+                    content["name"],
+                    content["description"],
+                    parent_id,
+                    sort_order,
                     now,
                     now,
+                    content["language_code"],
                 ),
+            )
+            self._upsert_translation(
+                connection,
+                category_id,
+                content,
+                now,
             )
             return {
                 "category": self._row_to_category(
-                    self._load(connection, category_id)
+                    self._load_localized(
+                        connection,
+                        category_id,
+                        content["language_code"],
+                    )
                 )
             }
 
@@ -337,11 +576,10 @@ class CategoryService:
         context,
     ) -> dict[str, object]:
         mutable = {
-            "name",
             "slug",
-            "description",
             "parent_id",
             "sort_order",
+            "content",
         }
         self._known_fields(payload, {"category_id", *mutable})
         category_id = self._category_id(payload.get("category_id"))
@@ -351,21 +589,8 @@ class CategoryService:
         normalized_payload: dict[str, object] = {
             "category_id": category_id,
         }
-        if "name" in payload:
-            normalized_payload["name"] = self._text(
-                payload["name"],
-                "Category name",
-                maximum=MAX_NAME,
-            )
         if "slug" in payload:
             normalized_payload["slug"] = self._slug(payload["slug"])
-        if "description" in payload:
-            normalized_payload["description"] = self._text(
-                payload["description"],
-                "Category description",
-                maximum=MAX_DESCRIPTION,
-                allow_empty=True,
-            )
         if "parent_id" in payload:
             normalized_payload["parent_id"] = self._category_id(
                 payload["parent_id"],
@@ -375,14 +600,16 @@ class CategoryService:
             normalized_payload["sort_order"] = self._sort_order(
                 payload["sort_order"]
             )
+        if "content" in payload:
+            normalized_payload["content"] = self._content(
+                payload["content"]
+            )
 
         def mutation(connection):
             current = self._load(connection, category_id)
-            name = normalized_payload.get("name", str(current["name"]))
-            slug = normalized_payload.get("slug", str(current["slug"]))
-            description = normalized_payload.get(
-                "description",
-                str(current["description"]),
+            slug = normalized_payload.get(
+                "slug",
+                str(current["slug"]),
             )
             parent_id = normalized_payload.get(
                 "parent_id",
@@ -396,13 +623,13 @@ class CategoryService:
                 "sort_order",
                 int(current["sort_order"]),
             )
+            content = normalized_payload.get("content")
 
             if (
-                not isinstance(name, str)
-                or not isinstance(slug, str)
-                or not isinstance(description, str)
+                not isinstance(slug, str)
                 or (parent_id is not None and not isinstance(parent_id, str))
                 or not isinstance(sort_order, int)
+                or (content is not None and not isinstance(content, dict))
             ):
                 raise ValueError("Normalized category update is invalid")
 
@@ -418,6 +645,7 @@ class CategoryService:
                 child_status=str(current["status"]),
             )
 
+            now = self.application.clock.now().isoformat()
             if slug != str(current["slug"]):
                 connection.execute(
                     """
@@ -428,7 +656,7 @@ class CategoryService:
                     (
                         category_id,
                         str(current["slug"]),
-                        self.application.clock.now().isoformat(),
+                        now,
                     ),
                 )
 
@@ -436,8 +664,6 @@ class CategoryService:
                 """
                 UPDATE categories
                 SET slug = ?,
-                    name = ?,
-                    description = ?,
                     parent_id = ?,
                     sort_order = ?,
                     updated_at = ?
@@ -445,18 +671,59 @@ class CategoryService:
                 """,
                 (
                     slug,
-                    name,
-                    description,
                     parent_id,
                     sort_order,
-                    self.application.clock.now().isoformat(),
+                    now,
                     category_id,
                 ),
             )
-            return {
-                "category": self._row_to_category(
-                    self._load(connection, category_id)
+
+            response_language: str | None = None
+            if content is not None:
+                language_code = str(content["language_code"])
+                response_language = language_code
+                self._upsert_translation(
+                    connection,
+                    category_id,
+                    content,
+                    now,
                 )
+
+                legacy_language = current["legacy_language_code"]
+                if (
+                    legacy_language is None
+                    or str(legacy_language) == language_code
+                ):
+                    connection.execute(
+                        """
+                        UPDATE categories
+                        SET name = ?,
+                            description = ?,
+                            legacy_language_code = COALESCE(
+                                legacy_language_code,
+                                ?
+                            )
+                        WHERE id = ?
+                        """,
+                        (
+                            str(content["name"]),
+                            str(content["description"]),
+                            language_code,
+                            category_id,
+                        ),
+                    )
+
+            row = (
+                self._load_localized(
+                    connection,
+                    category_id,
+                    response_language,
+                )
+                if response_language is not None
+                else self._load(connection, category_id)
+            )
+            return {
+                "category": self._row_to_category(row)
             }
 
         return run_idempotent(

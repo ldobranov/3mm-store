@@ -1,33 +1,38 @@
 import { computed, readonly, ref } from 'vue'
 
-export type StoreLanguage = 'bg' | 'en'
-
 const LANGUAGE_KEY = 'preferredLanguage'
+const LANGUAGE_CODE = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/
 
-function normalizeLanguage(value: unknown): StoreLanguage {
-  return value === 'bg' ? 'bg' : 'en'
+export function normalizeLanguageCode(value: unknown): string {
+  if (typeof value !== 'string') return 'en'
+  const code = value.trim().toLowerCase()
+  return LANGUAGE_CODE.test(code) ? code : 'en'
 }
 
-function readLanguage(): StoreLanguage {
+function readLanguage(): string {
   if (typeof window === 'undefined') return 'en'
-  return normalizeLanguage(window.localStorage.getItem(LANGUAGE_KEY))
+  return normalizeLanguageCode(
+    window.localStorage.getItem(LANGUAGE_KEY),
+  )
 }
 
-const selectedLanguage = ref<StoreLanguage>(readLanguage())
+const selectedLanguage = ref<string>(readLanguage())
 
 if (typeof window !== 'undefined') {
   window.addEventListener('language-changed', (event) => {
     const detail = event instanceof CustomEvent ? event.detail : null
     selectedLanguage.value = detail?.language
-      ? normalizeLanguage(detail.language)
+      ? normalizeLanguageCode(detail.language)
       : readLanguage()
   })
   window.addEventListener('storage', (event) => {
-    if (event.key === LANGUAGE_KEY) selectedLanguage.value = readLanguage()
+    if (event.key === LANGUAGE_KEY) {
+      selectedLanguage.value = readLanguage()
+    }
   })
 }
 
-export function getStoreLanguage(): StoreLanguage {
+export function getStoreLanguage(): string {
   return selectedLanguage.value
 }
 

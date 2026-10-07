@@ -2,7 +2,7 @@
 
 Status: **implemented; physical acceptance pending**
 
-Version: `0.1.0-dev.2`
+Version: `0.1.0-dev.3`
 
 Branch: `s1/categories`
 
@@ -20,12 +20,13 @@ S1.1 adds:
 
 ```text
 catalog_list_categories
+catalog_get_category
 category_create
 category_update
 category_set_status
 ```
 
-All four operations are declared for `operator` and `administrator`.
+All category operations are declared for `operator` and `administrator`.
 They use the existing `catalog_manage` permission for operator access.
 
 Queries forbid idempotency keys. Every mutation requires one.
@@ -105,16 +106,16 @@ No Store-specific Core route, theme or language service is introduced.
 
 ## Storage compatibility
 
-S1.1 needs no schema migration beyond accepted revision `0001`; the S0 schema
-already contains categories, slug history and idempotency records.
-
-Upgrading from the accepted S0 package or the transport-broken `0.1.0-dev.1` build to `0.1.0-dev.2` therefore keeps:
+S1.1b extends the accepted category slice with forward migration `0002`.
 
 ```text
-schema_revision = 0001
+0001  base catalog
+0002  localized Store content
 ```
 
-and must not re-run migration `0001`.
+Existing `0001` category text remains in place as an unassigned legacy
+fallback; migration `0002` does not guess its language. See
+[S1.1b Localization Foundation](S1_1B_LOCALIZATION.md).
 
 ## Tests
 
@@ -137,11 +138,11 @@ the real current 3mm package validator. Store does not copy the validator.
 
 Before S1.1 is accepted on Raspberry:
 
-1. build `0.1.0-dev.2`;
+1. build `0.1.0-dev.3`;
 2. validate the ZIP against current 3mm;
 3. upgrade the existing physical Store installation;
 4. confirm the same application instance and existing database are preserved;
-5. confirm migration journal remains exactly `0001`;
+5. confirm migration journal is exactly `0001`, `0002`;
 6. create root and child categories through the UI;
 7. edit name/slug and verify old slug history exists;
 8. verify an active parent with an active child cannot be archived;

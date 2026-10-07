@@ -143,10 +143,86 @@ def _migration_0001(connection: sqlite3.Connection) -> None:
         connection.execute(statement)
 
 
+def _migration_0002(connection: sqlite3.Connection) -> None:
+    """Add language-keyed content without guessing legacy text language."""
+
+    statements = (
+        "ALTER TABLE categories ADD COLUMN legacy_language_code TEXT NULL",
+        "ALTER TABLE products ADD COLUMN legacy_language_code TEXT NULL",
+        "ALTER TABLE product_media ADD COLUMN legacy_language_code TEXT NULL",
+        """
+        CREATE TABLE category_translations (
+            category_id TEXT NOT NULL
+                REFERENCES categories(id) ON DELETE CASCADE,
+            language_code TEXT NOT NULL,
+            name TEXT NOT NULL,
+            description TEXT NOT NULL DEFAULT '',
+            meta_title TEXT NOT NULL DEFAULT '',
+            meta_description TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            PRIMARY KEY (category_id, language_code)
+        )
+        """,
+        """
+        CREATE INDEX idx_category_translations_language_name
+            ON category_translations(language_code, name, category_id)
+        """,
+        """
+        CREATE TABLE product_translations (
+            product_id TEXT NOT NULL
+                REFERENCES products(id) ON DELETE CASCADE,
+            language_code TEXT NOT NULL,
+            name TEXT NOT NULL,
+            short_description TEXT NOT NULL DEFAULT '',
+            description TEXT NOT NULL DEFAULT '',
+            meta_title TEXT NOT NULL DEFAULT '',
+            meta_description TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            PRIMARY KEY (product_id, language_code)
+        )
+        """,
+        """
+        CREATE INDEX idx_product_translations_language_name
+            ON product_translations(language_code, name, product_id)
+        """,
+        """
+        CREATE TABLE product_media_translations (
+            media_id TEXT NOT NULL
+                REFERENCES product_media(id) ON DELETE CASCADE,
+            language_code TEXT NOT NULL,
+            alt_text TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            PRIMARY KEY (media_id, language_code)
+        )
+        """,
+        """
+        CREATE TABLE store_translations (
+            language_code TEXT PRIMARY KEY,
+            store_name TEXT NOT NULL DEFAULT '',
+            home_title TEXT NOT NULL DEFAULT '',
+            home_description TEXT NOT NULL DEFAULT '',
+            meta_title TEXT NOT NULL DEFAULT '',
+            meta_description TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """,
+    )
+    for statement in statements:
+        connection.execute(statement)
+
+
 def get_migrations() -> tuple[ApplicationMigration, ...]:
     return (
         ApplicationMigration(
             revision="0001",
             apply=_migration_0001,
+        ),
+        ApplicationMigration(
+            revision="0002",
+            apply=_migration_0002,
         ),
     )

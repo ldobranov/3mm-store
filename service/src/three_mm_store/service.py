@@ -23,6 +23,7 @@ class StoreService:
 
         handlers = {
             "catalog_list_categories": self.categories.list_categories,
+            "catalog_get_category": self.categories.get_category,
             "category_create": self.categories.create,
             "category_update": self.categories.update,
             "category_set_status": self.categories.set_status,
