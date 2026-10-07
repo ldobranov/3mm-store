@@ -215,6 +215,46 @@ def _migration_0002(connection: sqlite3.Connection) -> None:
         connection.execute(statement)
 
 
+def _migration_0003(connection: sqlite3.Connection) -> None:
+    """Add durable inventory adjustment history and backfill inventory rows."""
+
+    connection.execute(
+        """
+        INSERT INTO inventory(product_id, stock_on_hand, updated_at)
+        SELECT p.id, 0, p.updated_at
+        FROM products p
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM inventory i
+            WHERE i.product_id = p.id
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE TABLE inventory_adjustments (
+            id TEXT PRIMARY KEY,
+            product_id TEXT NOT NULL
+                REFERENCES products(id) ON DELETE CASCADE,
+            delta INTEGER NOT NULL
+                CHECK (delta <> 0),
+            stock_before INTEGER NOT NULL
+                CHECK (stock_before >= 0),
+            stock_after INTEGER NOT NULL
+                CHECK (stock_after >= 0),
+            reason TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE INDEX idx_inventory_adjustments_product_created
+            ON inventory_adjustments(product_id, created_at, id)
+        """
+    )
+
+
 def get_migrations() -> tuple[ApplicationMigration, ...]:
     return (
         ApplicationMigration(
@@ -224,5 +264,9 @@ def get_migrations() -> tuple[ApplicationMigration, ...]:
         ApplicationMigration(
             revision="0002",
             apply=_migration_0002,
+        ),
+        ApplicationMigration(
+            revision="0003",
+            apply=_migration_0003,
         ),
     )

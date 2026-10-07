@@ -119,22 +119,44 @@ class PackageBuildTests(unittest.TestCase):
                 "product_create",
                 "product_update",
                 "product_set_status",
+                "inventory_list",
+                "inventory_adjust",
             ],
         )
+
+        catalog_operations = {
+            "catalog_list_categories",
+            "catalog_get_category",
+            "category_create",
+            "category_update",
+            "category_set_status",
+            "catalog_list_products",
+            "catalog_get_product",
+            "product_create",
+            "product_update",
+            "product_set_status",
+        }
+        inventory_operations = {"inventory_list", "inventory_adjust"}
         for operation in application["operations"][1:]:
             self.assertIn("operator", operation["audiences"])
             self.assertIn("administrator", operation["audiences"])
-            self.assertEqual(
-                operation["required_permission"],
-                "catalog_manage",
-            )
+            if operation["operation_id"] in catalog_operations:
+                self.assertEqual(
+                    operation["required_permission"],
+                    "catalog_manage",
+                )
+            if operation["operation_id"] in inventory_operations:
+                self.assertEqual(
+                    operation["required_permission"],
+                    "inventory_manage",
+                )
         self.assertEqual(
             [item["entrypoint_id"] for item in compiled_ui["entrypoints"]],
             ["catalog", "inventory", "settings"],
         )
         self.assertEqual(
             application["storage"]["schema_revision"],
-            "0002",
+            "0003",
         )
         self.assertFalse(
             application["storage"]["contains_personal_data"]

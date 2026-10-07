@@ -6,6 +6,7 @@ from three_mm_application_sdk import ApplicationContext, OperationContext
 
 from .categories import CategoryService
 from .products import ProductService
+from .inventory import InventoryService
 
 
 class StoreService:
@@ -13,6 +14,7 @@ class StoreService:
         self.context = context
         self.categories = CategoryService(context)
         self.products = ProductService(context)
+        self.inventory = InventoryService(context)
 
     def handle(
         self,
@@ -34,6 +36,8 @@ class StoreService:
             "product_create": self.products.create,
             "product_update": self.products.update,
             "product_set_status": self.products.set_status,
+            "inventory_list": self.inventory.list_inventory,
+            "inventory_adjust": self.inventory.adjust,
         }
         handler = handlers.get(operation_id)
         if handler is None:
