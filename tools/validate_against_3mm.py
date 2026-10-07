@@ -23,7 +23,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--core-version",
-        default="0.3.0",
+        default=None,
+        help="Optional Core version override; by default use the checkout VERSION.",
     )
     arguments = parser.parse_args()
 

@@ -1,0 +1,118 @@
+name: Release 3mm Store
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-release:
+    name: Build and publish 3mm Store
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out tagged Store commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check out current 3mm contracts
+        uses: actions/checkout@v4
+        with:
+          repository: ldobranov/3mm
+          path: .core/3mm
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install contract dependency
+        run: python -m pip install pydantic==2.13.4
+
+      - name: Validate release version
+        id: release
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -Eeuo pipefail
+          VERSION="${TAG#v}"
+          FILE_VERSION="$(tr -d '[:space:]' < VERSION)"
+          if [ "$VERSION" != "$FILE_VERSION" ]; then
+            echo "Tag version $VERSION does not match VERSION $FILE_VERSION"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Run Store tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Build install package twice
+        shell: bash
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$RUNNER_TEMP/build-a" "$RUNNER_TEMP/build-b" dist
+
+          python tools/build_package.py             --output "$RUNNER_TEMP/build-a/3mm-store-$VERSION.zip"
+
+          python tools/build_package.py             --output "$RUNNER_TEMP/build-b/3mm-store-$VERSION.zip"
+
+          cmp             "$RUNNER_TEMP/build-a/3mm-store-$VERSION.zip"             "$RUNNER_TEMP/build-b/3mm-store-$VERSION.zip"
+
+          cp             "$RUNNER_TEMP/build-a/3mm-store-$VERSION.zip"             "dist/3mm-store-$VERSION.zip"
+
+      - name: Validate package against current 3mm
+        shell: bash
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -Eeuo pipefail
+          python tools/validate_against_3mm.py             --core-root .core/3mm             --package "dist/3mm-store-$VERSION.zip"
+
+      - name: Create checksum
+        working-directory: dist
+        shell: bash
+        run: sha256sum ./*.zip > SHA256SUMS
+
+      - name: Show package contents
+        shell: bash
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: python -m zipfile -l "dist/3mm-store-$VERSION.zip"
+
+      - name: Publish GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -Eeuo pipefail
+          NOTES_FILE="RELEASE_NOTES_$VERSION.md"
+
+          release_args=(
+            "$TAG"
+            "dist/3mm-store-$VERSION.zip"
+            "dist/SHA256SUMS"
+            --verify-tag
+            --title "3mm Store $VERSION"
+          )
+
+          if [ -f "$NOTES_FILE" ]; then
+            release_args+=(--notes-file "$NOTES_FILE")
+          else
+            release_args+=(--generate-notes)
+          fi
+
+          gh release create "${release_args[@]}"

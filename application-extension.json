@@ -1,9 +1,9 @@
 {
   "application_extension_version": 1,
   "module_id": "org.3mm.store",
-  "version": "0.1.0-dev.0",
+  "version": "0.1.0-dev.5",
   "service": {
-    "artifact": "service/three_mm_store-0.1.0.dev0-py3-none-any.whl",
+    "artifact": "service/three_mm_store-0.1.0.dev5-py3-none-any.whl",
     "artifact_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
     "entrypoint": "three_mm_store.service:create_service",
     "sdk_version": "1.3",
@@ -14,26 +14,628 @@
   "permissions": [
     {
       "permission_id": "catalog_manage",
-      "label": {"en": "Manage catalog", "translations": {"bg": "Управление на каталог"}},
-      "description": {"en": "Create, update and archive products and categories.", "translations": {"bg": "Създаване, редактиране и архивиране на продукти и категории."}}
+      "label": {
+        "en": "Manage catalog",
+        "translations": {
+          "bg": "Управление на каталог"
+        }
+      },
+      "description": {
+        "en": "Create, update and archive products and categories.",
+        "translations": {
+          "bg": "Създаване, редактиране и архивиране на продукти и категории."
+        }
+      }
     },
     {
       "permission_id": "inventory_manage",
-      "label": {"en": "Manage inventory", "translations": {"bg": "Управление на наличности"}},
-      "description": {"en": "View and adjust Store stock.", "translations": {"bg": "Преглед и корекция на наличностите в магазина."}}
+      "label": {
+        "en": "Manage inventory",
+        "translations": {
+          "bg": "Управление на наличности"
+        }
+      },
+      "description": {
+        "en": "View and adjust Store stock.",
+        "translations": {
+          "bg": "Преглед и корекция на наличностите в магазина."
+        }
+      }
     }
   ],
   "operations": [
     {
       "operation_id": "health",
       "kind": "query",
-      "audiences": ["internal"],
+      "audiences": [
+        "internal"
+      ],
       "idempotency": "forbidden",
-      "input_schema": {"type": "object", "properties": {}, "required": [], "additionalProperties": false},
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
       "output_schema": {
         "type": "object",
-        "properties": {"status": {"type": "string", "enum": ["ready"]}},
-        "required": ["status"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ready"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "operation_id": "catalog_list_categories",
+      "kind": "query",
+      "audiences": [
+        "operator",
+        "administrator"
+      ],
+      "required_permission": "catalog_manage",
+      "idempotency": "forbidden",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "search": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "archived"
+            ]
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "language_code": {
+            "type": "string"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "category_id": {
+                  "type": "string"
+                },
+                "slug": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "parent_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "sort_order": {
+                  "type": "integer"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "archived"
+                  ]
+                },
+                "created_at": {
+                  "type": "string"
+                },
+                "updated_at": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "category_id",
+                "slug",
+                "name",
+                "description",
+                "parent_id",
+                "sort_order",
+                "status",
+                "created_at",
+                "updated_at"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "operation_id": "catalog_get_category",
+      "kind": "query",
+      "audiences": [
+        "operator",
+        "administrator"
+      ],
+      "required_permission": "catalog_manage",
+      "idempotency": "forbidden",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "category_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "category_id"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "object",
+            "properties": {
+              "category_id": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "parent_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "sort_order": {
+                "type": "integer"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "active",
+                  "archived"
+                ]
+              },
+              "created_at": {
+                "type": "string"
+              },
+              "updated_at": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "category_id",
+              "slug",
+              "name",
+              "description",
+              "parent_id",
+              "sort_order",
+              "status",
+              "created_at",
+              "updated_at"
+            ],
+            "additionalProperties": false
+          },
+          "legacy_language_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "translations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "language_code": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "meta_title": {
+                  "type": "string"
+                },
+                "meta_description": {
+                  "type": "string"
+                },
+                "created_at": {
+                  "type": "string"
+                },
+                "updated_at": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "language_code",
+                "name",
+                "description",
+                "meta_title",
+                "meta_description",
+                "created_at",
+                "updated_at"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "category",
+          "legacy_language_code",
+          "translations"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "operation_id": "category_create",
+      "kind": "command",
+      "audiences": [
+        "operator",
+        "administrator"
+      ],
+      "required_permission": "catalog_manage",
+      "idempotency": "required",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sort_order": {
+            "type": "integer"
+          },
+          "content": {
+            "type": "object",
+            "properties": {
+              "language_code": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "meta_title": {
+                "type": "string"
+              },
+              "meta_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "language_code",
+              "name"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "slug",
+          "content"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "object",
+            "properties": {
+              "category_id": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "parent_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "sort_order": {
+                "type": "integer"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "active",
+                  "archived"
+                ]
+              },
+              "created_at": {
+                "type": "string"
+              },
+              "updated_at": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "category_id",
+              "slug",
+              "name",
+              "description",
+              "parent_id",
+              "sort_order",
+              "status",
+              "created_at",
+              "updated_at"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "category"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "operation_id": "category_update",
+      "kind": "command",
+      "audiences": [
+        "operator",
+        "administrator"
+      ],
+      "required_permission": "catalog_manage",
+      "idempotency": "required",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "category_id": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sort_order": {
+            "type": "integer"
+          },
+          "content": {
+            "type": "object",
+            "properties": {
+              "language_code": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "meta_title": {
+                "type": "string"
+              },
+              "meta_description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "language_code",
+              "name"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "category_id"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "object",
+            "properties": {
+              "category_id": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "parent_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "sort_order": {
+                "type": "integer"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "active",
+                  "archived"
+                ]
+              },
+              "created_at": {
+                "type": "string"
+              },
+              "updated_at": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "category_id",
+              "slug",
+              "name",
+              "description",
+              "parent_id",
+              "sort_order",
+              "status",
+              "created_at",
+              "updated_at"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "category"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "operation_id": "category_set_status",
+      "kind": "command",
+      "audiences": [
+        "operator",
+        "administrator"
+      ],
+      "required_permission": "catalog_manage",
+      "idempotency": "required",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "category_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "archived"
+            ]
+          }
+        },
+        "required": [
+          "category_id",
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "object",
+            "properties": {
+              "category_id": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "parent_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "sort_order": {
+                "type": "integer"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "active",
+                  "archived"
+                ]
+              },
+              "created_at": {
+                "type": "string"
+              },
+              "updated_at": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "category_id",
+              "slug",
+              "name",
+              "description",
+              "parent_id",
+              "sort_order",
+              "status",
+              "created_at",
+              "updated_at"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "category"
+        ],
         "additionalProperties": false
       }
     }
@@ -43,7 +645,9 @@
       "route_id": "catalog",
       "entrypoint_id": "catalog",
       "audience": "operator",
-      "required_permissions": ["catalog_manage"],
+      "required_permissions": [
+        "catalog_manage"
+      ],
       "layout": "application",
       "navigation": true,
       "order": 10
@@ -52,7 +656,9 @@
       "route_id": "inventory",
       "entrypoint_id": "inventory",
       "audience": "operator",
-      "required_permissions": ["inventory_manage"],
+      "required_permissions": [
+        "inventory_manage"
+      ],
       "layout": "application",
       "navigation": true,
       "order": 20
@@ -74,9 +680,11 @@
   "command_bindings": [],
   "storage": {
     "engine": "sqlite",
-    "schema_revision": "0001",
+    "schema_revision": "0002",
     "migration_entrypoint": "three_mm_store.migrations:get_migrations",
-    "classifications": ["private"],
+    "classifications": [
+      "private"
+    ],
     "contains_personal_data": false,
     "backup_required": true
   },

@@ -46,9 +46,25 @@ def wheel_name(version: str) -> str:
 
 def _write(archive: zipfile.ZipFile, name: str, payload: bytes) -> None:
     info = zipfile.ZipInfo(name, FIXED_TIME)
-    info.compress_type = zipfile.ZIP_DEFLATED
+    # Freeze every platform-sensitive ZIP header field. In particular,
+    # ZipInfo.create_system defaults to DOS on Windows and Unix on Linux, which
+    # changes archive bytes even when every payload byte is identical.
+    info.create_system = 3
+    info.create_version = 20
+    info.extract_version = 20
+    info.flag_bits = 0
+    info.compress_type = zipfile.ZIP_STORED
     info.external_attr = 0o100644 << 16
+    info.internal_attr = 0
+    info.extra = b""
+    info.comment = b""
     archive.writestr(info, payload)
+
+
+def _text_bytes(path: Path) -> bytes:
+    """Return canonical UTF-8/LF bytes independent of checkout line endings."""
+    text = path.read_text(encoding="utf-8")
+    return text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
 
 
 def build_wheel(version: str) -> bytes:
@@ -59,7 +75,7 @@ def build_wheel(version: str) -> bytes:
             _write(
                 archive,
                 f"three_mm_store/{path.name}",
-                path.read_bytes(),
+                _text_bytes(path),
             )
 
         dist_info = f"three_mm_store-{wheel_version(version)}.dist-info"
@@ -130,7 +146,7 @@ def build_package(version: str | None = None) -> bytes:
                 _write(
                     archive,
                     path.relative_to(ROOT).as_posix(),
-                    path.read_bytes(),
+                    _text_bytes(path),
                 )
 
     return output.getvalue()

@@ -9,7 +9,7 @@ contracts and tests.
 
 ## Status
 
-**S0.2 — installable package foundation**
+**S1.1b — localization foundation**
 
 Module identity:
 
@@ -20,7 +20,7 @@ org.3mm.store
 Current work happens on:
 
 ```text
-s0/store-foundation
+s1/categories
 ```
 
 ## Architecture
@@ -31,6 +31,9 @@ The authoritative Store architecture and delivery plan is:
 - [S0 Generic Platform Gap Audit](docs/S0_GAP_AUDIT.md)
 - [S0.1 Catalog Contract](docs/S0_CATALOG_CONTRACT.md)
 - [S0.2 Installable Package Foundation](docs/S0_PACKAGE_FOUNDATION.md)
+- [S0 Physical Acceptance](docs/S0_PHYSICAL_ACCEPTANCE.md)
+- [S1.1 Category Management](docs/S1_1_CATEGORIES.md)\n- [S1.1b Localization Foundation](docs/S1_1B_LOCALIZATION.md)
+- [Releasing 3mm Store](docs/RELEASING.md)
 
 3mm Store targets:
 
