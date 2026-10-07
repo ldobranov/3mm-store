@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# Node / frontend
+node_modules/
+dist/
+.vite/
+
+# Build output
+build/out/
+*.whl
+*.zip
+
+# Local runtime/test state
+.runtime/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
