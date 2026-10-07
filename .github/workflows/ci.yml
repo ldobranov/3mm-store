@@ -1,0 +1,31 @@
+name: Store CI
+
+on:
+  push:
+    branches:
+      - main
+      - "s0/**"
+      - "s1/**"
+  pull_request:
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Compile Python sources
+        run: |
+          python -m py_compile tools/*.py service/src/three_mm_store/*.py
+
+      - name: Run Store package tests
+        run: |
+          python -m unittest discover -s tests -v
+
+      - name: Build deterministic package
+        run: |
+          python tools/build_package.py --output dist/3mm-store.zip

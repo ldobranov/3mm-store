@@ -9,7 +9,7 @@ contracts and tests.
 
 ## Status
 
-**S0 — architecture and generic platform gap audit**
+**S0.2 — installable package foundation**
 
 Module identity:
 
@@ -30,6 +30,7 @@ The authoritative Store architecture and delivery plan is:
 - [Store Application Extension Development Guide](docs/STORE_EXTENSION_GUIDE.md)
 - [S0 Generic Platform Gap Audit](docs/S0_GAP_AUDIT.md)
 - [S0.1 Catalog Contract](docs/S0_CATALOG_CONTRACT.md)
+- [S0.2 Installable Package Foundation](docs/S0_PACKAGE_FOUNDATION.md)
 
 3mm Store targets:
 
@@ -39,6 +40,27 @@ The authoritative Store architecture and delivery plan is:
 - extension-owned SQLite/files and forward migrations;
 - generic connector/secret boundaries;
 - Milestone 19 Public Web Runtime for public GET/HEAD content.
+
+## Build
+
+```bash
+python tools/build_package.py --output dist/3mm-store.zip
+```
+
+## Tests
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+To validate the built package with the real 3mm package validator from a sibling
+checkout:
+
+```bash
+python tools/validate_against_3mm.py \
+  --core-root ../3mm \
+  --package dist/3mm-store.zip
+```
 
 ## Development rule
 
