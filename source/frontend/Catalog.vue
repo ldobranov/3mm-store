@@ -306,7 +306,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 
 import {
   createRequestId,
@@ -358,6 +358,7 @@ const categories = ref<Category[]>([])
 const allCategories = ref<Category[]>([])
 const installedLanguages = ref<string[]>(['en'])
 const contentLanguage = ref('en')
+const contentLanguageFollowsUi = ref(true)
 const translations = ref<Record<string, CategoryTranslation>>({})
 const legacyCategory = ref<Category | null>(null)
 const legacySeedLanguage = ref<string | null>(null)
@@ -590,11 +591,13 @@ function cancelEdit() {
 }
 
 function switchEditorLanguage(code: string) {
+  contentLanguageFollowsUi.value = false
   contentLanguage.value = code
   applyLanguageToForm(code)
 }
 
 async function changeListLanguage() {
+  contentLanguageFollowsUi.value = false
   if (editing.value) {
     applyLanguageToForm(contentLanguage.value)
   }
@@ -728,8 +731,31 @@ async function nextPage() {
   await loadCategories()
 }
 
+watch(uiLanguage, async (newLanguage) => {
+  await loadInstalledLanguages()
+
+  if (
+    !contentLanguageFollowsUi.value ||
+    !installedLanguages.value.includes(newLanguage)
+  ) {
+    return
+  }
+
+  if (contentLanguage.value === newLanguage) return
+
+  contentLanguage.value = newLanguage
+  offset.value = 0
+
+  if (editing.value) {
+    applyLanguageToForm(newLanguage)
+  }
+
+  await Promise.all([loadCategories(), loadAllCategories()])
+})
+
 onMounted(async () => {
   contentLanguage.value = uiLanguage.value
+  contentLanguageFollowsUi.value = true
   await loadInstalledLanguages()
   await Promise.all([loadCategories(), loadAllCategories()])
 })

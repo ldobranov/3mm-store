@@ -58,6 +58,22 @@ class FrontendHostContractTests(unittest.TestCase):
             catalog,
         )
 
+    def test_catalog_follows_host_language_until_content_language_is_pinned(self) -> None:
+        catalog = (FRONTEND / "Catalog.vue").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("watch(uiLanguage", catalog)
+        self.assertIn("contentLanguageFollowsUi", catalog)
+        self.assertIn("contentLanguageFollowsUi.value = false", catalog)
+        self.assertIn(
+            "contentLanguage.value = newLanguage",
+            catalog,
+        )
+        self.assertIn(
+            "await Promise.all([loadCategories(), loadAllCategories()])",
+            catalog,
+        )
+
     def test_store_ui_uses_platform_theme_tokens(self) -> None:
         catalog = (FRONTEND / "Catalog.vue").read_text(
             encoding="utf-8"

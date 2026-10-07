@@ -2,7 +2,7 @@
 
 Status: **implemented; physical acceptance pending**
 
-Version: `0.1.0-dev.3`
+Version: `0.1.0-dev.4`
 
 Branch: `s1/categories`
 
@@ -198,6 +198,14 @@ The Catalog screen now:
 - lists/searches categories in the chosen content language;
 - retains platform theme behavior and host UI-language behavior.
 
+## Live display-language switching
+
+The Catalog list follows the current 3mm UI language while the content-language selector has not been changed manually. Changing the host language therefore reloads category names/descriptions immediately without a browser refresh.
+
+Once an operator explicitly selects another content language or editor tab, that choice is pinned for the current page session so a later UI-language change does not unexpectedly switch the record being edited.
+
+This keeps UI language and content language separate while still making the normal display path feel native to 3mm.
+
 ## Slugs
 
 Localized slugs are intentionally **not** part of S1.1b.
@@ -220,7 +228,7 @@ Physical acceptance for `0.1.0-dev.3` must prove:
 5. available content tabs match the platform language registry;
 6. saving the existing legacy category under BG creates a BG translation;
 7. adding EN creates a second row without overwriting BG;
-8. switching BG/EN changes the management list text;
+8. switching the 3mm display language changes the management list text immediately without refresh while content language is unpinned;
 9. removing a language from the available-language registry does not delete its
    stored Store translation;
 10. restart preserves all translations;
