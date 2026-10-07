@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "module_id": "org.3mm.store",
   "name": "3mm Store",
-  "version": "0.1.0-dev.7",
+  "version": "0.1.0-dev.8",
   "description": "Store Application Extension for the 3mm platform.",
   "runtimes": [
     "core",

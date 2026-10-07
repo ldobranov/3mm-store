@@ -132,6 +132,34 @@ class FrontendHostContractTests(unittest.TestCase):
         self.assertIn("createRequestId", inventory)
         self.assertIn("watch(uiLanguage", inventory)
 
+    def test_store_settings_use_localized_store_contract(self) -> None:
+        settings = (FRONTEND / "Settings.vue").read_text(
+            encoding="utf-8"
+        )
+
+        for operation in (
+            "store_settings_get",
+            "store_settings_update",
+        ):
+            self.assertIn(operation, settings)
+
+        self.assertIn("'administrator'", settings)
+        self.assertIn("readInstalledLanguages", settings)
+        self.assertIn("localizedDrafts", settings)
+        self.assertIn("snapshotLocalizedDraft", settings)
+        self.assertIn("pendingLanguages", settings)
+
+        for field in (
+            "currency",
+            "public_base_url",
+            "store_name",
+            "home_title",
+            "home_description",
+            "meta_title",
+            "meta_description",
+        ):
+            self.assertIn(field, settings)
+
     def test_store_ui_uses_platform_theme_tokens(self) -> None:
         catalog = (FRONTEND / "Catalog.vue").read_text(
             encoding="utf-8"

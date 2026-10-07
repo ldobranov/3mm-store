@@ -24,3 +24,4 @@ All notable changes to 3mm Store will be documented here.
 
 - S1.2 product catalog operations with multilingual content, canonical SKU/slug rules, category assignments, price/inventory flags, draft/active/archived lifecycle and management UI.
 - S1.3 inventory operations with localized listing, independent `inventory_manage` permission, replay-safe signed stock adjustments, durable adjustment history, schema revision `0003` and functional Inventory UI.
+- S1.4 Store settings with administrator-only replay-safe operations, global currency/public origin, dynamically localized storefront/SEO content and draft-preserving multilingual Settings UI.
