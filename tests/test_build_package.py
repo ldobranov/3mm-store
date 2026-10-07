@@ -3,15 +3,59 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+from pathlib import Path
+import shutil
+import tempfile
 import unittest
 import zipfile
 
+import tools.build_package as package_builder
 from tools.build_package import build_package, module_version, wheel_name
 
 
 class PackageBuildTests(unittest.TestCase):
     def test_build_is_deterministic(self) -> None:
         self.assertEqual(build_package(), build_package())
+
+
+    def test_build_is_identical_with_crlf_checkout(self) -> None:
+        expected = build_package()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name in (
+                "VERSION",
+                "manifest.json",
+                "application-extension.json",
+                "compiled-ui.json",
+            ):
+                shutil.copy2(package_builder.ROOT / name, root / name)
+
+            for relative in (
+                Path("service/src/three_mm_store"),
+                Path("source/frontend"),
+            ):
+                target = root / relative
+                target.mkdir(parents=True, exist_ok=True)
+                for source in (package_builder.ROOT / relative).rglob("*"):
+                    if not source.is_file():
+                        continue
+                    destination = target / source.relative_to(
+                        package_builder.ROOT / relative
+                    )
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    text = source.read_text(encoding="utf-8")
+                    destination.write_bytes(
+                        text.replace("\n", "\r\n").encode("utf-8")
+                    )
+
+            original_root = package_builder.ROOT
+            package_builder.ROOT = root
+            try:
+                actual = package_builder.build_package()
+            finally:
+                package_builder.ROOT = original_root
+
+        self.assertEqual(expected, actual)
 
     def test_package_identity_and_wheel_checksum_match(self) -> None:
         payload = build_package()

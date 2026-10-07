@@ -51,6 +51,12 @@ def _write(archive: zipfile.ZipFile, name: str, payload: bytes) -> None:
     archive.writestr(info, payload)
 
 
+def _text_bytes(path: Path) -> bytes:
+    """Return canonical UTF-8/LF bytes independent of checkout line endings."""
+    text = path.read_text(encoding="utf-8")
+    return text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
+
+
 def build_wheel(version: str) -> bytes:
     package_root = ROOT / "service" / "src" / "three_mm_store"
     output = io.BytesIO()
@@ -59,7 +65,7 @@ def build_wheel(version: str) -> bytes:
             _write(
                 archive,
                 f"three_mm_store/{path.name}",
-                path.read_bytes(),
+                _text_bytes(path),
             )
 
         dist_info = f"three_mm_store-{wheel_version(version)}.dist-info"
@@ -130,7 +136,7 @@ def build_package(version: str | None = None) -> bytes:
                 _write(
                     archive,
                     path.relative_to(ROOT).as_posix(),
-                    path.read_bytes(),
+                    _text_bytes(path),
                 )
 
     return output.getvalue()
