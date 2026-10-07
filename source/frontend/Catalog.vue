@@ -21,7 +21,7 @@
       <label>
         <span>{{ t('Език на съдържанието', 'Content language') }}</span>
         <select
-          v-model="contentLanguage"
+          :value="contentLanguage"
           @change="changeListLanguage"
         >
           <option
@@ -95,7 +95,8 @@
           @click="switchEditorLanguage(code)"
         >
           {{ code.toUpperCase() }}
-          <span v-if="hasStoredTranslation(code)" aria-hidden="true">✓</span>
+          <span v-if="hasUnsavedDraft(code)" aria-hidden="true">•</span>
+          <span v-else-if="hasStoredTranslation(code)" aria-hidden="true">✓</span>
           <span
             v-else-if="code === legacySeedLanguage"
             aria-hidden="true"
@@ -339,6 +340,13 @@ interface CategoryTranslation {
   updated_at: string
 }
 
+interface LocalizedCategoryDraft {
+  name: string
+  description: string
+  meta_title: string
+  meta_description: string
+}
+
 interface CategoryList {
   items: Category[]
   total: number
@@ -360,6 +368,7 @@ const installedLanguages = ref<string[]>(['en'])
 const contentLanguage = ref('en')
 const contentLanguageFollowsUi = ref(true)
 const translations = ref<Record<string, CategoryTranslation>>({})
+const localizedDrafts = ref<Record<string, LocalizedCategoryDraft>>({})
 const legacyCategory = ref<Category | null>(null)
 const legacySeedLanguage = ref<string | null>(null)
 
@@ -423,7 +432,75 @@ function clearLocalizedForm() {
   form.meta_description = ''
 }
 
+function localizedFormSnapshot(): LocalizedCategoryDraft {
+  return {
+    name: form.name,
+    description: form.description,
+    meta_title: form.meta_title,
+    meta_description: form.meta_description,
+  }
+}
+
+function baselineForLanguage(code: string): LocalizedCategoryDraft {
+  const stored = translations.value[code]
+  if (stored) {
+    return {
+      name: stored.name,
+      description: stored.description,
+      meta_title: stored.meta_title,
+      meta_description: stored.meta_description,
+    }
+  }
+
+  if (
+    code === legacySeedLanguage.value &&
+    legacyCategory.value
+  ) {
+    return {
+      name: legacyCategory.value.name,
+      description: legacyCategory.value.description,
+      meta_title: '',
+      meta_description: '',
+    }
+  }
+
+  return {
+    name: '',
+    description: '',
+    meta_title: '',
+    meta_description: '',
+  }
+}
+
+function snapshotLocalizedDraft(code: string) {
+  localizedDrafts.value = {
+    ...localizedDrafts.value,
+    [code]: localizedFormSnapshot(),
+  }
+}
+
+function hasUnsavedDraft(code: string): boolean {
+  const draft = localizedDrafts.value[code]
+  if (!draft) return false
+  const baseline = baselineForLanguage(code)
+  return (
+    draft.name !== baseline.name ||
+    draft.description !== baseline.description ||
+    draft.meta_title !== baseline.meta_title ||
+    draft.meta_description !== baseline.meta_description
+  )
+}
+
 function applyLanguageToForm(code: string) {
+  const draft = localizedDrafts.value[code]
+  if (draft) {
+    form.name = draft.name
+    form.description = draft.description
+    form.meta_title = draft.meta_title
+    form.meta_description = draft.meta_description
+    return
+  }
+
   const stored = translations.value[code]
   if (stored) {
     form.name = stored.name
@@ -560,6 +637,7 @@ function startCreate() {
   form.parent_id = ''
   form.sort_order = 0
   translations.value = {}
+  localizedDrafts.value = {}
   legacyCategory.value = null
   legacySeedLanguage.value = null
   clearLocalizedForm()
@@ -568,6 +646,7 @@ function startCreate() {
 
 async function startEdit(category: Category) {
   clearNotice()
+  localizedDrafts.value = {}
   editing.value = true
   saving.value = true
   try {
@@ -588,19 +667,35 @@ async function startEdit(category: Category) {
 
 function cancelEdit() {
   editing.value = false
+  localizedDrafts.value = {}
 }
 
 function switchEditorLanguage(code: string) {
+  if (code === contentLanguage.value) return
+  if (editing.value) {
+    snapshotLocalizedDraft(contentLanguage.value)
+  }
   contentLanguageFollowsUi.value = false
   contentLanguage.value = code
   applyLanguageToForm(code)
 }
 
-async function changeListLanguage() {
-  contentLanguageFollowsUi.value = false
+async function changeListLanguage(event: Event) {
+  const target = event.target as HTMLSelectElement
+  const code = target.value
+  if (code === contentLanguage.value) return
+
   if (editing.value) {
-    applyLanguageToForm(contentLanguage.value)
+    snapshotLocalizedDraft(contentLanguage.value)
   }
+
+  contentLanguageFollowsUi.value = false
+  contentLanguage.value = code
+
+  if (editing.value) {
+    applyLanguageToForm(code)
+  }
+
   offset.value = 0
   await Promise.all([loadCategories(), loadAllCategories()])
 }
@@ -646,6 +741,10 @@ async function saveCategory() {
 
     const categoryId =
       form.category_id || result.category.category_id
+    const savedLanguage = contentLanguage.value
+    const remainingDrafts = { ...localizedDrafts.value }
+    delete remainingDrafts[savedLanguage]
+    localizedDrafts.value = remainingDrafts
 
     message.value = form.category_id
       ? t('Категорията е обновена.', 'Category updated.')
@@ -742,6 +841,10 @@ watch(uiLanguage, async (newLanguage) => {
   }
 
   if (contentLanguage.value === newLanguage) return
+
+  if (editing.value) {
+    snapshotLocalizedDraft(contentLanguage.value)
+  }
 
   contentLanguage.value = newLanguage
   offset.value = 0

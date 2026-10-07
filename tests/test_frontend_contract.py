@@ -74,6 +74,27 @@ class FrontendHostContractTests(unittest.TestCase):
             catalog,
         )
 
+    def test_localized_editor_preserves_unsaved_language_drafts(self) -> None:
+        catalog = (FRONTEND / "Catalog.vue").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("localizedDrafts", catalog)
+        self.assertIn("snapshotLocalizedDraft", catalog)
+        self.assertIn("baselineForLanguage", catalog)
+        self.assertIn("hasUnsavedDraft", catalog)
+        self.assertIn(
+            "snapshotLocalizedDraft(contentLanguage.value)",
+            catalog,
+        )
+        self.assertIn(
+            "const draft = localizedDrafts.value[code]",
+            catalog,
+        )
+        self.assertIn(
+            "delete remainingDrafts[savedLanguage]",
+            catalog,
+        )
+
     def test_store_ui_uses_platform_theme_tokens(self) -> None:
         catalog = (FRONTEND / "Catalog.vue").read_text(
             encoding="utf-8"

@@ -2,7 +2,7 @@
 
 Status: **implemented; physical acceptance pending**
 
-Version: `0.1.0-dev.4`
+Version: `0.1.0-dev.5`
 
 Branch: `s1/categories`
 
@@ -206,6 +206,12 @@ Once an operator explicitly selects another content language or editor tab, that
 
 This keeps UI language and content language separate while still making the normal display path feel native to 3mm.
 
+## Unsaved editor drafts
+
+Switching the content language does not discard unsubmitted localized text. The compiled UI keeps an in-memory draft per language while the editor is open. Only the language explicitly saved is removed from the draft map; other language drafts remain available when switching tabs. Drafts are discarded only when the operator closes/cancels the editor or starts editing another record.
+
+This state is browser-session UI state only and is never treated as persisted Store content until a command succeeds.
+
 ## Slugs
 
 Localized slugs are intentionally **not** part of S1.1b.
@@ -219,7 +225,7 @@ URL strategy.
 
 ## Upgrade acceptance
 
-Physical acceptance for `0.1.0-dev.3` must prove:
+Physical acceptance for `0.1.0-dev.5` must prove:
 
 1. upgrade from the existing `0001` database succeeds;
 2. migration journal becomes exactly `0001, 0002`;
