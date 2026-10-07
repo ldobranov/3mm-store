@@ -1,7 +1,7 @@
 {
   "compiled_ui_version": 1,
   "module_id": "org.3mm.store",
-  "version": "0.1.0-dev.5",
+  "version": "0.1.0-dev.6",
   "entrypoints": [
     {
       "entrypoint_id": "catalog",

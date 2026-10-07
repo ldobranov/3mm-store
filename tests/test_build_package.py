@@ -114,6 +114,11 @@ class PackageBuildTests(unittest.TestCase):
                 "category_create",
                 "category_update",
                 "category_set_status",
+                "catalog_list_products",
+                "catalog_get_product",
+                "product_create",
+                "product_update",
+                "product_set_status",
             ],
         )
         for operation in application["operations"][1:]:
@@ -198,6 +203,7 @@ class PackageBuildTests(unittest.TestCase):
         self.assertIn("application-extension.json", names)
         self.assertIn("compiled-ui.json", names)
         self.assertIn("source/frontend/Catalog.vue", names)
+        self.assertIn("source/frontend/ProductsPanel.vue", names)
         self.assertIn("source/frontend/Inventory.vue", names)
         self.assertIn("source/frontend/Settings.vue", names)
         self.assertIn("source/frontend/application-api.ts", names)

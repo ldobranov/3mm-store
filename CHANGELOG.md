@@ -21,3 +21,5 @@ All notable changes to 3mm Store will be documented here.
 - S1.1b localization foundation with schema revision `0002`, language-keyed Store content, dynamic platform language discovery and multilingual category/SEO editing.
 - S1.1b Catalog now follows live 3mm display-language changes without refresh until an operator explicitly pins another content language.
 - S1.1b localized editor preserves unsaved per-language drafts while switching content languages and clears only the language that was successfully saved.
+
+- S1.2 product catalog operations with multilingual content, canonical SKU/slug rules, category assignments, price/inventory flags, draft/active/archived lifecycle and management UI.
