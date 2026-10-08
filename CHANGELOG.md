@@ -23,3 +23,4 @@ All notable changes to 3mm Store will be documented here.
 - S1.1b localized editor preserves unsaved per-language drafts while switching content languages and clears only the language that was successfully saved.
 
 - S1.2 product catalog operations with multilingual content, canonical SKU/slug rules, category assignments, price/inventory flags, draft/active/archived lifecycle and management UI.
+- S1.3 inventory operations with localized listing, independent `inventory_manage` permission, replay-safe signed stock adjustments, durable adjustment history, schema revision `0003` and functional Inventory UI.

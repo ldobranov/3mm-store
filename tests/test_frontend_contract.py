@@ -118,6 +118,20 @@ class FrontendHostContractTests(unittest.TestCase):
         self.assertIn("price_minor", products)
         self.assertIn("track_inventory", products)
 
+    def test_inventory_uses_inventory_contract(self) -> None:
+        inventory = (FRONTEND / "Inventory.vue").read_text(
+            encoding="utf-8"
+        )
+        for operation in ("inventory_list", "inventory_adjust"):
+            self.assertIn(operation, inventory)
+        self.assertIn("readInstalledLanguages", inventory)
+        self.assertIn("contentLanguage", inventory)
+        self.assertIn("availabilityFilter", inventory)
+        self.assertIn("stock_on_hand", inventory)
+        self.assertIn("adjustment.reason", inventory)
+        self.assertIn("createRequestId", inventory)
+        self.assertIn("watch(uiLanguage", inventory)
+
     def test_store_ui_uses_platform_theme_tokens(self) -> None:
         catalog = (FRONTEND / "Catalog.vue").read_text(
             encoding="utf-8"
