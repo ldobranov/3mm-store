@@ -7,6 +7,7 @@ from three_mm_application_sdk import ApplicationContext, OperationContext
 from .categories import CategoryService
 from .products import ProductService
 from .inventory import InventoryService
+from .settings import StoreSettingsService
 
 
 class StoreService:
@@ -15,6 +16,7 @@ class StoreService:
         self.categories = CategoryService(context)
         self.products = ProductService(context)
         self.inventory = InventoryService(context)
+        self.settings = StoreSettingsService(context)
 
     def handle(
         self,
@@ -38,6 +40,8 @@ class StoreService:
             "product_set_status": self.products.set_status,
             "inventory_list": self.inventory.list_inventory,
             "inventory_adjust": self.inventory.adjust,
+            "store_settings_get": self.settings.get_settings,
+            "store_settings_update": self.settings.update,
         }
         handler = handlers.get(operation_id)
         if handler is None:

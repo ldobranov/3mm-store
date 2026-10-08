@@ -9,7 +9,7 @@ contracts and tests.
 
 ## Status
 
-**S1.3 — inventory**
+**S1.4 — Store settings**
 
 Module identity:
 
@@ -20,7 +20,7 @@ org.3mm.store
 Current work happens on:
 
 ```text
-s1/inventory
+s1/settings
 ```
 
 ## Architecture
@@ -36,6 +36,7 @@ The authoritative Store architecture and delivery plan is:
 - [S1.1b Localization Foundation](docs/S1_1B_LOCALIZATION.md)
 - [S1.2 Products](docs/S1_2_PRODUCTS.md)
 - [S1.3 Inventory](docs/S1_3_INVENTORY.md)
+- [S1.4 Store Settings](docs/S1_4_SETTINGS.md)
 - [Releasing 3mm Store](docs/RELEASING.md)
 
 3mm Store targets:

@@ -138,17 +138,27 @@ Rules:
 S1 settings live inside Store-owned SQLite and are changed through declared
 administrator operations.
 
-Initial keys:
+Language-independent keys:
 
 ```text
-store_name
 currency
 public_base_url
 ```
 
+Localized storefront content is stored by language in `store_translations`
+rather than in `store_settings`:
+
+```text
+store_name
+home_title
+home_description
+meta_title
+meta_description
+```
+
 Semantics:
 
-- `store_name`: public display name;
+- `store_name`: localized public display name;
 - `currency`: three-letter uppercase ISO currency code, initially `EUR`;
 - `public_base_url`: optional trusted canonical origin used for absolute
   canonical URLs and structured metadata.

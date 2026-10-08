@@ -121,6 +121,8 @@ class PackageBuildTests(unittest.TestCase):
                 "product_set_status",
                 "inventory_list",
                 "inventory_adjust",
+                "store_settings_get",
+                "store_settings_update",
             ],
         )
 
@@ -137,7 +139,19 @@ class PackageBuildTests(unittest.TestCase):
             "product_set_status",
         }
         inventory_operations = {"inventory_list", "inventory_adjust"}
+        settings_operations = {
+            "store_settings_get",
+            "store_settings_update",
+        }
         for operation in application["operations"][1:]:
+            if operation["operation_id"] in settings_operations:
+                self.assertEqual(
+                    operation["audiences"],
+                    ["administrator"],
+                )
+                self.assertNotIn("required_permission", operation)
+                continue
+
             self.assertIn("operator", operation["audiences"])
             self.assertIn("administrator", operation["audiences"])
             if operation["operation_id"] in catalog_operations:
